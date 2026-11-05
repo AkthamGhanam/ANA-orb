@@ -641,6 +641,7 @@
         .grupo > .segmentado { align-self: flex-start; }
         .import-pie { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; }
         .ayuda.error { color: #dc2626; }
+        #loginError { white-space: pre-line; overflow-wrap: anywhere; }
         :root[data-tema="oscuro"] .ayuda.error { color: #fca5a5; }
 
         .conexion-estado {
@@ -1618,23 +1619,40 @@
         // accesos/<correo> de Firestore que Bytes llena desde la consola. Se lee con el token de la propia cuenta:
         // las reglas de Firestore solo dejan que cada cuenta lea su documento. Devuelve '' si la cuenta no tiene
         // empresa y lanza un error si Firestore no respondió (para no sacar a nadie por un corte de red).
+        // Cuando devuelve '' deja en motivoSinEmpresa la causa exacta, que el login muestra debajo del aviso.
+        let motivoSinEmpresa = '';
         async function empresaDeLaCuenta(usuario) {
+            motivoSinEmpresa = '';
             const { claims, token } = await usuario.getIdTokenResult();
             if (claims.empresa) return String(claims.empresa).trim();
-            if (!usuario.email) return '';
-            const correo = encodeURIComponent(usuario.email.trim().toLowerCase());
+            if (!usuario.email) { motivoSinEmpresa = 'la cuenta no tiene correo.'; return ''; }
+            const id = usuario.email.trim().toLowerCase();
+            const correo = encodeURIComponent(id);
             const base = window.ANA_EMULADOR_FIRESTORE ? `${window.ANA_EMULADOR_FIRESTORE}/v1` : 'https://firestore.googleapis.com/v1'; // emulador: solo pruebas locales
             const res = await fetch(`${base}/projects/${FIREBASE_CONFIG.projectId}/databases/(default)/documents/accesos/${correo}`,
                 { headers: { Authorization: `Bearer ${token}` } });
             if (res.ok) {
-                const doc = await res.json();
-                return String(doc?.fields?.empresa?.stringValue || '').trim();
+                const campos = (await res.json())?.fields || {};
+                const empresa = String(campos.empresa?.stringValue || '').trim();
+                if (!empresa) {
+                    const tiene = Object.entries(campos).map(([nombre, valor]) => `"${nombre}" (${Object.keys(valor)[0].replace('Value', '')})`).join(', ');
+                    motivoSinEmpresa = campos.empresa?.stringValue !== undefined
+                        ? `el campo "empresa" del documento accesos/${id} está vacío.`
+                        : `el documento accesos/${id} existe, pero no tiene un campo "empresa" de tipo string (tiene: ${tiene || 'ningún campo'}).`;
+                }
+                return empresa;
             }
             if (res.status === 403 || res.status === 404) {
                 let detalle = '';
-                try { detalle = (await res.json()).error.message; } catch (_) { /* sin detalle */ }
-                // Documento inexistente = cuenta sin empresa. Lo demás es configuración (Firestore sin crear o sin reglas).
-                if (!(/not found/i.test(detalle) && detalle.includes('/documents/'))) console.error('Firestore (accesos):', detalle);
+                try { detalle = String((await res.json()).error.message).replace(/\s+/g, ' ').trim(); } catch (_) { /* sin detalle */ }
+                if (/not found/i.test(detalle) && detalle.includes('/documents/')) {
+                    motivoSinEmpresa = `no existe el documento accesos/${id} en Firestore. El ID del documento tiene que ser exactamente ese correo, en minúsculas.`;
+                } else if (res.status === 403) {
+                    motivoSinEmpresa = `Firestore no deja leer accesos/${id}. Publica las reglas de firebase/firestore.rules en Firestore → Reglas (${detalle}).`;
+                } else {
+                    motivoSinEmpresa = `Firestore: ${detalle}`;
+                }
+                console.error('Firestore (accesos):', motivoSinEmpresa);
                 return '';
             }
             throw Object.assign(new Error(`Firestore respondió ${res.status}`), { code: 'ana/firestore' });
@@ -4018,6 +4036,7 @@
             'ana/firestore': 'No se pudo comprobar la empresa de tu cuenta. Inténtalo de nuevo en un momento.'
         };
 
+        const conDetalle = (texto, detalle) => detalle ? `${texto}\nDetalle: ${detalle}` : texto;
         function mostrarErrorLogin(texto, informativo = false) {
             const el = $('loginError');
             el.textContent = texto;
@@ -4043,7 +4062,7 @@
                     return;
                 }
                 const empresa = await empresaDeLaCuenta(usuario);
-                if (!empresa) return terminarSesion(ERRORES_LOGIN['ana/sin-empresa']);
+                if (!empresa) return terminarSesion(conDetalle(ERRORES_LOGIN['ana/sin-empresa'], motivoSinEmpresa));
                 const distinta = !SESION || SESION.uid !== usuario.uid || SESION.empresa !== empresa;
                 if (distinta && guardarSesion(usuario, empresa)) location.reload();
             }).catch((err) => console.error('No se pudo verificar la sesión:', err));
@@ -4072,13 +4091,13 @@
                 try { empresa = await empresaDeLaCuenta(user); } catch (err) { await firebaseAuth.signOut(); throw err; }
                 if (!empresa) {
                     await firebaseAuth.signOut();
-                    throw Object.assign(new Error('Cuenta sin empresa'), { code: 'ana/sin-empresa' });
+                    throw Object.assign(new Error('Cuenta sin empresa'), { code: 'ana/sin-empresa', detalle: motivoSinEmpresa });
                 }
                 if (!guardarSesion(user, empresa)) throw new Error('No se pudo guardar la sesión en este navegador.');
                 location.reload();
             } catch (err) {
                 console.error('No se pudo iniciar sesión:', err);
-                mostrarErrorLogin(ERRORES_LOGIN[err.code] || (firebaseAuth ? 'No se pudo iniciar sesión. Inténtalo de nuevo.' : 'No se pudo cargar el inicio de sesión. Revisa tu conexión a internet.'));
+                mostrarErrorLogin(conDetalle(ERRORES_LOGIN[err.code] || (firebaseAuth ? 'No se pudo iniciar sesión. Inténtalo de nuevo.' : 'No se pudo cargar el inicio de sesión. Revisa tu conexión a internet.'), err.detalle));
                 boton.disabled = false;
                 boton.textContent = 'Entrar';
             }
