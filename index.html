@@ -641,7 +641,6 @@
         .grupo > .segmentado { align-self: flex-start; }
         .import-pie { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; }
         .ayuda.error { color: #dc2626; }
-        #loginError { white-space: pre-line; overflow-wrap: anywhere; }
         :root[data-tema="oscuro"] .ayuda.error { color: #fca5a5; }
 
         .conexion-estado {
@@ -1489,7 +1488,9 @@
         // ==========================================
         // CONEXIÓN CON EL BACKEND FLASK (app.py)
         // Con login (FIREBASE_CONFIG lleno y servidor con la versión que lo exige), todas las rutas menos /message_into llevan la cabecera
-        // Authorization: Bearer <ID token de Firebase> y el servidor saca de ahí la empresa (autenticacion/firebase.py).
+        // Authorization: Bearer <ID token de Firebase> y el servidor saca de ahí el espacio de la cuenta (autenticacion/firebase.py):
+        // cada cuenta tiene el suyo (cuenta_<uid>). Con login, <empresa> en las rutas es esa clave (claveServidor()) y el
+        // servidor rechaza cualquier otra; los nombres de empresa del cuerpo son solo el nombre visible.
         // Rutas que existen hoy en el servidor:
         //   POST /query/into      -> FormData con 'audio'; devuelve { texto } transcrito
         //   POST /query/response  -> { texto, empresa: "Nombre de la empresa" } -> { output }
@@ -1540,9 +1541,9 @@
 
         // ---------- Login de las empresas (Firebase Authentication) ----------
         // Configuración web del proyecto (Firebase > Configuración del proyecto > Tus apps). No es secreta.
-        // Si apiKey queda vacía, el panel funciona sin login. Las cuentas las crea Bytes en la consola de Firebase:
-        // correo y contraseña en Authentication, y la empresa en Firestore (documento accesos/<correo>, campo
-        // 'empresa'). Nadie puede registrarse solo. Ver empresaDeLaCuenta().
+        // Si apiKey queda vacía, el panel funciona sin login. Las cuentas las crea Bytes en la consola de Firebase
+        // (Authentication: correo y contraseña) y nadie puede registrarse solo. Cada cuenta tiene su propio espacio
+        // en el servidor, que empieza vacío: ver claveDeLaCuenta() y claveServidor().
         const FIREBASE_CONFIG = {
             apiKey: 'AIzaSyDaGsG5h7lijk8bIj5Fpx8qLMlSiSAa-Bg',
             authDomain: 'ana-demo-c6a27.firebaseapp.com',
@@ -1615,47 +1616,12 @@
             } catch (_) { /* sin almacenamiento: no se puede recordar, no se recarga */ }
         }
 
-        // Empresa de la cuenta: el claim 'empresa' (scripts/cuentas.py del backend) o, si no lo tiene, el documento
-        // accesos/<correo> de Firestore que Bytes llena desde la consola. Se lee con el token de la propia cuenta:
-        // las reglas de Firestore solo dejan que cada cuenta lea su documento. Devuelve '' si la cuenta no tiene
-        // empresa y lanza un error si Firestore no respondió (para no sacar a nadie por un corte de red).
-        // Cuando devuelve '' deja en motivoSinEmpresa la causa exacta, que el login muestra debajo del aviso.
-        let motivoSinEmpresa = '';
-        async function empresaDeLaCuenta(usuario) {
-            motivoSinEmpresa = '';
-            const { claims, token } = await usuario.getIdTokenResult();
-            if (claims.empresa) return String(claims.empresa).trim();
-            if (!usuario.email) { motivoSinEmpresa = 'la cuenta no tiene correo.'; return ''; }
-            const id = usuario.email.trim().toLowerCase();
-            const correo = encodeURIComponent(id);
-            const base = window.ANA_EMULADOR_FIRESTORE ? `${window.ANA_EMULADOR_FIRESTORE}/v1` : 'https://firestore.googleapis.com/v1'; // emulador: solo pruebas locales
-            const res = await fetch(`${base}/projects/${FIREBASE_CONFIG.projectId}/databases/(default)/documents/accesos/${correo}`,
-                { headers: { Authorization: `Bearer ${token}` } });
-            if (res.ok) {
-                const campos = (await res.json())?.fields || {};
-                const empresa = String(campos.empresa?.stringValue || '').trim();
-                if (!empresa) {
-                    const tiene = Object.entries(campos).map(([nombre, valor]) => `"${nombre}" (${Object.keys(valor)[0].replace('Value', '')})`).join(', ');
-                    motivoSinEmpresa = campos.empresa?.stringValue !== undefined
-                        ? `el campo "empresa" del documento accesos/${id} está vacío.`
-                        : `el documento accesos/${id} existe, pero no tiene un campo "empresa" de tipo string (tiene: ${tiene || 'ningún campo'}).`;
-                }
-                return empresa;
-            }
-            if (res.status === 403 || res.status === 404) {
-                let detalle = '';
-                try { detalle = String((await res.json()).error.message).replace(/\s+/g, ' ').trim(); } catch (_) { /* sin detalle */ }
-                if (/not found/i.test(detalle) && detalle.includes('/documents/')) {
-                    motivoSinEmpresa = `no existe el documento accesos/${id} en Firestore. El ID del documento tiene que ser exactamente ese correo, en minúsculas.`;
-                } else if (res.status === 403) {
-                    motivoSinEmpresa = `Firestore no deja leer accesos/${id}. Publica las reglas de firebase/firestore.rules en Firestore → Reglas (${detalle}).`;
-                } else {
-                    motivoSinEmpresa = `Firestore: ${detalle}`;
-                }
-                console.error('Firestore (accesos):', motivoSinEmpresa);
-                return '';
-            }
-            throw Object.assign(new Error(`Firestore respondió ${res.status}`), { code: 'ana/firestore' });
+        // Clave del espacio de datos de la cuenta en el servidor: cuenta_<uid>, que empieza vacío. Si la cuenta tiene el
+        // claim 'empresa' (scripts/cuentas.py del backend), es esa empresa: así varias cuentas comparten sus datos.
+        // El servidor saca la misma clave del token (autenticacion/firebase.py), así que no se puede elegir otra.
+        async function claveDeLaCuenta(usuario) {
+            const { claims } = await usuario.getIdTokenResult();
+            return String(claims.empresa || '').trim() || `cuenta_${usuario.uid}`;
         }
 
         // Cierra la sesión y vuelve al login con un aviso
@@ -1681,11 +1647,6 @@
             }
             const res = await fetch(url, { ...opciones, headers });
             if (LOGIN_ACTIVO && res.status === 401) terminarSesion('Tu sesión terminó. Vuelve a iniciar sesión.');
-            if (LOGIN_ACTIVO && res.status === 403) { // p. ej., Bytes borró el documento de la cuenta en Firestore
-                res.clone().json().then((d) => {
-                    if (d && d.Error === 'CUENTA SIN EMPRESA ASIGNADA') terminarSesion(ERRORES_LOGIN['ana/sin-empresa']);
-                }).catch(() => { /* otro 403 */ });
-            }
             return res;
         }
 
@@ -1753,7 +1714,11 @@
         // ==========================================
         let eventos = cargar('ana_eventos', []);            // [{ id, fecha: 'YYYY-MM-DD', titulo, origen: 'ana'|'manual' }]
         let empresa = cargar('ana_empresa', {});            // { ...camposEmpresa, actualizado, enServidor }
-        if (SESION) empresa.nombre = SESION.empresa;        // con login, el nombre lo da la cuenta
+        // Con login, el servidor guarda todo en el espacio de la cuenta (claveServidor) y el nombre de la empresa es solo
+        // el que el usuario escribe en su ficha. Una cuenta unida a una empresa por el claim empieza con ese nombre.
+        if (SESION && !empresa.nombre && !SESION.empresa.startsWith('cuenta_')) empresa.nombre = SESION.empresa;
+        // Clave con la que el servidor guarda los datos: con login, la de la cuenta; sin login, el nombre, como antes.
+        const claveServidor = () => SESION ? SESION.empresa : (empresa.nombre || '');
         let documentos = cargar('ana_documentos', []);      // [{ id, nombre, tamano, tipo, fecha, estado }]
         let notificaciones = cargar('ana_notificaciones', []); // [{ id, tipo, texto, hora }]
         let chat = cargar('ana_chat', []);                  // [{ rol: 'user'|'ana', texto, fotos?: [nombres] }]
@@ -2152,7 +2117,7 @@
             const pedir = (url, method) => apiFetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: cuerpo });
             try {
                 let res = await pedir(`${API_RAIZ}/empresa/carga`, 'POST');
-                if (res.status === 409) res = await pedir(`${API_RAIZ}/empresa/update/${encodeURIComponent(empresa.nombre)}`, 'PUT');
+                if (res.status === 409) res = await pedir(`${API_RAIZ}/empresa/update/${encodeURIComponent(claveServidor())}`, 'PUT');
                 marcarServidor(res.status < 500);
                 if (!res.ok) throw new Error(`Error en /empresa: ${res.status}`);
                 empresa.enServidor = new Date().toISOString();
@@ -2180,14 +2145,14 @@
         async function traerEmpresaDelServidor() {
             if (!SESION || empresa.actualizado) return;
             try {
-                const res = await apiFetch(`${API_RAIZ}/empresa/search/${encodeURIComponent(empresa.nombre)}`);
+                const res = await apiFetch(`${API_RAIZ}/empresa/search/${encodeURIComponent(claveServidor())}`);
                 marcarServidor(res.status < 500);
                 if (!res.ok) return; // 404: la empresa todavía no tiene ficha
                 const d = await res.json();
                 const texto = (v) => { const t = String(v ?? '').trim(); return ['None', 'null', '[]'].includes(t) ? '' : t.replace(/^\[['"]?|['"]?\]$/g, ''); };
                 const info = d.companyInfo || {}, redes = d.socials || {}, ahora = new Date().toISOString();
                 empresa = {
-                    nombre: SESION.empresa, sector: texto(info.biz), productos: texto(info.does),
+                    nombre: texto(d.company) || empresa.nombre || '', sector: texto(info.biz), productos: texto(info.does),
                     mision: texto(info.mission), vision: texto(info.vision), valores: texto(info.values),
                     whatsapp: texto(redes.whatsapp), instagram: texto(redes.instagram), facebook: texto(redes.facebook), linkedin: texto(redes.linkedin),
                     actualizado: ahora, enServidor: ahora
@@ -2884,8 +2849,8 @@
         async function enviarMensaje(textoUsuario) {
             textoUsuario = String(textoUsuario || '').trim();
             if (!textoUsuario || ocupado) return;
-            if (!empresa.nombre) {
-                // Sin el nombre de la empresa /query/response responde 400: se explica en vez de mostrar un error
+            if (!claveServidor()) {
+                // Sin login y sin el nombre de la empresa el servidor no sabe para quién responder: se explica
                 agregarMensaje('user', textoUsuario);
                 agregarMensaje('ana', 'Antes de responderte necesito saber para qué empresa trabajo. Escribe su nombre en la pestaña Empresa, guárdalo y vuelve a escribirme.');
                 notificar('alerta', 'Falta el nombre de la empresa: el servidor lo necesita para responder en el chat.');
@@ -3305,10 +3270,10 @@
         // Si quedó vacío se borra del servidor.
         async function enviarInventario() {
             if (invEnviando) return false; // al terminar el envío en curso se reenvía si hubo cambios
-            if (!empresa.nombre) { renderEstadoInventario(); return false; }
+            if (!claveServidor()) { renderEstadoInventario(); return false; }
             invEnviando = true;
             const version = inventario.actualizado;
-            const nombre = encodeURIComponent(empresa.nombre);
+            const nombre = encodeURIComponent(claveServidor());
             renderEstadoInventario('Enviando al servidor...');
             let ok = false;
             try {
@@ -3359,10 +3324,10 @@
         // Si el navegador está vacío pero el servidor ya tiene inventario de esta empresa, se trae
         let invRevisadoServidor = false;
         async function traerInventarioDelServidor() {
-            if (invRevisadoServidor || !empresa.nombre || inventario.productos.length) return;
+            if (invRevisadoServidor || !claveServidor() || inventario.productos.length) return;
             invRevisadoServidor = true;
             try {
-                const res = await apiFetch(`${API_RAIZ}/inventario/search/${encodeURIComponent(empresa.nombre)}`);
+                const res = await apiFetch(`${API_RAIZ}/inventario/search/${encodeURIComponent(claveServidor())}`);
                 if (!res.ok) return;
                 const lista = (await res.json())?.companies?.[0]?.inventory;
                 if (!Array.isArray(lista) || !lista.length || inventario.productos.length) return;
@@ -3440,7 +3405,7 @@
 
         function renderAvisoInventario() {
             const aviso = $('invAviso');
-            if (!empresa.nombre) {
+            if (!claveServidor()) {
                 aviso.className = 'inv-aviso alerta';
                 aviso.innerHTML = `<span>Para que ${escaparHtml(nombreIA())} use este inventario, guarda el nombre de la empresa en la pestaña Empresa.</span><button type="button" class="btn-secundario" data-ir-tab="empresa">Ir a Empresa</button>`;
             } else if (conexionInv && inventario.productos.length) {
@@ -3466,11 +3431,11 @@
             const estado = $('invEstado');
             const sinEnviar = !!inventario.actualizado && !inventario.enServidor;
             estado.textContent = texto || (!inventario.actualizado ? 'Aún no hay inventario'
-                : !empresa.nombre ? 'Guardado en este navegador · falta el nombre de la empresa'
+                : !claveServidor() ? 'Guardado en este navegador · falta el nombre de la empresa'
                 : sinEnviar ? 'Guardado solo en este navegador: no llegó al servidor'
                 : `Enviado al servidor ${horaCorta(inventario.enServidor)} · ${nombreIA()} ya lo consulta`);
             estado.classList.toggle('pendiente', !texto && sinEnviar);
-            $('invReintentar').classList.toggle('hidden', !!texto || !sinEnviar || !empresa.nombre || invEnviando);
+            $('invReintentar').classList.toggle('hidden', !!texto || !sinEnviar || !claveServidor() || invEnviando);
         }
 
         // Atajos: botones que llevan a otra vista o pestaña
@@ -4031,12 +3996,9 @@
             'auth/invalid-email': 'Escribe un correo válido.',
             'auth/user-disabled': 'Esta cuenta está desactivada. Escríbele al equipo de Bytes.',
             'auth/too-many-requests': 'Demasiados intentos seguidos. Espera unos minutos y vuelve a intentarlo.',
-            'auth/network-request-failed': 'No hay conexión a internet.',
-            'ana/sin-empresa': 'Tu cuenta todavía no tiene una empresa asignada. Escríbele al equipo de Bytes.',
-            'ana/firestore': 'No se pudo comprobar la empresa de tu cuenta. Inténtalo de nuevo en un momento.'
+            'auth/network-request-failed': 'No hay conexión a internet.'
         };
 
-        const conDetalle = (texto, detalle) => detalle ? `${texto}\nDetalle: ${detalle}` : texto;
         function mostrarErrorLogin(texto, informativo = false) {
             const el = $('loginError');
             el.textContent = texto;
@@ -4061,10 +4023,9 @@
                     if (SESION) terminarSesion('Tu sesión terminó. Vuelve a iniciar sesión.');
                     return;
                 }
-                const empresa = await empresaDeLaCuenta(usuario);
-                if (!empresa) return terminarSesion(conDetalle(ERRORES_LOGIN['ana/sin-empresa'], motivoSinEmpresa));
-                const distinta = !SESION || SESION.uid !== usuario.uid || SESION.empresa !== empresa;
-                if (distinta && guardarSesion(usuario, empresa)) location.reload();
+                const clave = await claveDeLaCuenta(usuario);
+                const distinta = !SESION || SESION.uid !== usuario.uid || SESION.empresa !== clave;
+                if (distinta && guardarSesion(usuario, clave)) location.reload();
             }).catch((err) => console.error('No se pudo verificar la sesión:', err));
         }
 
@@ -4087,17 +4048,11 @@
             try {
                 await firebaseListo;
                 const { user } = await firebaseAuth.signInWithEmailAndPassword(correo, clave);
-                let empresa = '';
-                try { empresa = await empresaDeLaCuenta(user); } catch (err) { await firebaseAuth.signOut(); throw err; }
-                if (!empresa) {
-                    await firebaseAuth.signOut();
-                    throw Object.assign(new Error('Cuenta sin empresa'), { code: 'ana/sin-empresa', detalle: motivoSinEmpresa });
-                }
-                if (!guardarSesion(user, empresa)) throw new Error('No se pudo guardar la sesión en este navegador.');
+                if (!guardarSesion(user, await claveDeLaCuenta(user))) throw new Error('No se pudo guardar la sesión en este navegador.');
                 location.reload();
             } catch (err) {
                 console.error('No se pudo iniciar sesión:', err);
-                mostrarErrorLogin(conDetalle(ERRORES_LOGIN[err.code] || (firebaseAuth ? 'No se pudo iniciar sesión. Inténtalo de nuevo.' : 'No se pudo cargar el inicio de sesión. Revisa tu conexión a internet.'), err.detalle));
+                mostrarErrorLogin(ERRORES_LOGIN[err.code] || (firebaseAuth ? 'No se pudo iniciar sesión. Inténtalo de nuevo.' : 'No se pudo cargar el inicio de sesión. Revisa tu conexión a internet.'));
                 boton.disabled = false;
                 boton.textContent = 'Entrar';
             }
@@ -4122,8 +4077,6 @@
         mostrarVistaInv(vistaInv);
         CANALES.forEach(renderCanal);
         if (SESION) {
-            $('empNombre').readOnly = true;
-            $('empNombreNota').textContent = '(viene de tu cuenta)';
             $('cerrarSesion').classList.remove('hidden');
             $('cerrarSesion').title = `Cerrar sesión (${SESION.correo})`;
         }
@@ -4135,7 +4088,7 @@
             traerEmpresaDelServidor();
             traerInventarioDelServidor();
             if (empresa.actualizado && empresa.nombre && !empresa.enServidor) enviarEmpresaAlServidor(); // datos guardados antes de que llegaran al servidor
-            if (empresa.nombre && inventario.actualizado && !inventario.enServidor) enviarInventario();
+            if (claveServidor() && inventario.actualizado && !inventario.enServidor) enviarInventario();
             setInterval(revisarSincronizacion, 60000);
             setTimeout(revisarSincronizacion, 3000);
             refrescarCanales();
