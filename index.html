@@ -12,60 +12,96 @@
             try { tema = JSON.parse(localStorage.getItem('ana_tema')); } catch (_) { /* sin almacenamiento */ }
             if (tema !== 'claro' && tema !== 'oscuro') tema = window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches ? 'oscuro' : 'claro';
             document.documentElement.dataset.tema = tema;
+            // Intro (pantalla verde con el logo y círculo que descubre el panel): se marca antes de pintar para que el panel
+            // no se vea un instante antes de la animación. Se omite si el sistema pide reducir el movimiento.
+            if (!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches)) document.documentElement.classList.add('con-intro');
         })();
     </script>
     <!-- Google Fonts (si no cargan, se usa la fuente del sistema) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300..700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
     <style>
-        /* ---------- Colores (un solo lugar para cambiar el tema) ---------- */
+        /* ---------- Colores (un solo lugar para cambiar el tema) ----------
+           Paleta del "Dashboard V22": fondo menta → crema → durazno, riel y tarjeta principal verde noche,
+           acento verde azulado, menta para lo activo y naranja para la acción principal. */
         :root {
-            --verde: #10b981;
-            --verde-oscuro: #059669;
-            --verde-texto: #047857;
-            --verde-suave: #ecfdf5;
-            --verde-medio: #d1fae5;
-            --azul: #0ea5e9;
-            --azul-suave: #e0f2fe;
-            --ambar: #f59e0b;
-            --rojo: #ef4444;
-            --fondo: #f3f6f5;
+            --verde: #1f7a64;          /* acento: botones, activos, enlaces */
+            --verde-oscuro: #17604f;
+            --verde-texto: #17644f;
+            --verde-suave: #e5f3ed;
+            --verde-medio: #cdeadf;
+            --azul: #5b9bd5;
+            --azul-suave: #e3eef8;
+            --ambar: #f2925a;
+            --rojo: #e5484d;
+            --fondo: #f3f1ec;
+            --fondo-degradado:
+                radial-gradient(70rem 48rem at -8% -12%, rgba(150, 214, 190, 0.55), transparent 62%),
+                radial-gradient(60rem 50rem at 108% 35%, rgba(246, 214, 191, 0.75), transparent 60%),
+                radial-gradient(50rem 40rem at 40% 115%, rgba(214, 236, 226, 0.7), transparent 65%);
             --superficie: #ffffff;
-            --superficie-2: #f7f9f8;
-            --borde: #e2e9e6;
-            --borde-fuerte: rgba(16, 185, 129, 0.35);
-            --texto: #1e293b;
-            --texto-suave: #64748b;
-            --texto-tenue: #94a3b8;
-            --sombra: 0 1px 2px rgba(15, 23, 42, 0.04), 0 6px 20px rgba(15, 23, 42, 0.05);
-            --radio: 1rem;
+            --superficie-2: #f5f6f3;
+            --borde: #e8ebe6;
+            --borde-fuerte: rgba(31, 122, 100, 0.35);
+            --texto: #10201c;
+            --texto-suave: #5f6f6a;
+            --texto-tenue: #9aa7a2;
+            --sombra: 0 1px 2px rgba(16, 32, 28, 0.04), 0 10px 30px -12px rgba(16, 32, 28, 0.14);
+            --sombra-alta: 0 2px 4px rgba(16, 32, 28, 0.05), 0 22px 44px -18px rgba(16, 32, 28, 0.28);
+            --radio: 1.15rem;
             --logo: #19510a; /* verde del logo de Bytes */
+            /* Superficies oscuras (riel, tarjeta principal, portada del perfil): iguales en los dos temas */
+            --noche: #0f2a25;
+            --noche-2: #173a33;
+            --noche-texto: #e8f3ef;
+            --noche-suave: rgba(232, 243, 239, 0.62);
+            --menta: #86dcbc;
+            --menta-claro: #c8f1e1;
+            --durazno: #f8d2b8;
+            --durazno-fuerte: #f2a77a;
+            --naranja: #f39a64;
+            --naranja-texto: #5a250a;
+            --barra-verde: linear-gradient(180deg, #8fe3c3 0%, #2f9c7d 55%, #1b6b57 100%);
+            --serif: 'Instrument Serif', 'Times New Roman', serif;
+            --curva: cubic-bezier(0.2, 0.8, 0.2, 1);
+            --resorte: cubic-bezier(0.34, 1.45, 0.5, 1);
             color-scheme: light;
         }
         :root[data-tema="oscuro"] {
-            --verde-texto: #34d399;
-            --verde-suave: rgba(16, 185, 129, 0.12);
-            --verde-medio: rgba(16, 185, 129, 0.22);
-            --azul-suave: rgba(14, 165, 233, 0.16);
-            --fondo: #0c1311;
-            --superficie: #131c19;
-            --superficie-2: #19241f;
-            --borde: #24322d;
-            --borde-fuerte: rgba(52, 211, 153, 0.4);
-            --texto: #e2e8f0;
-            --texto-suave: #94a3b8;
-            --texto-tenue: #64748b;
-            --sombra: 0 1px 2px rgba(0, 0, 0, 0.3);
+            --verde: #3fb38f;
+            --verde-oscuro: #2f9a7a;
+            --verde-texto: #7fd9b8;
+            --verde-suave: rgba(63, 179, 143, 0.12);
+            --verde-medio: rgba(63, 179, 143, 0.22);
+            --azul-suave: rgba(91, 155, 213, 0.16);
+            --fondo: #08110f;
+            --fondo-degradado:
+                radial-gradient(60rem 42rem at -8% -12%, rgba(47, 156, 125, 0.22), transparent 62%),
+                radial-gradient(55rem 45rem at 108% 35%, rgba(243, 154, 100, 0.08), transparent 60%),
+                radial-gradient(50rem 40rem at 40% 115%, rgba(47, 156, 125, 0.1), transparent 65%);
+            --superficie: #111c19;
+            --superficie-2: #16231f;
+            --borde: #21312c;
+            --borde-fuerte: rgba(127, 217, 184, 0.35);
+            --texto: #e5eeea;
+            --texto-suave: #9bb0a8;
+            --texto-tenue: #64776f;
+            --sombra: 0 1px 2px rgba(0, 0, 0, 0.35), 0 12px 30px -14px rgba(0, 0, 0, 0.6);
+            --sombra-alta: 0 2px 4px rgba(0, 0, 0, 0.4), 0 22px 44px -18px rgba(0, 0, 0, 0.75);
             --logo: #5fae3e; /* el verde del logo, aclarado para que se vea sobre fondo oscuro */
+            --noche: #0c201c;
+            --noche-2: #133129;
+            --durazno: rgba(248, 210, 184, 0.28);
             color-scheme: dark;
         }
 
         * { box-sizing: border-box; }
         html, body { height: 100%; margin: 0; }
         body {
-            font-family: 'Outfit', system-ui, -apple-system, 'Segoe UI', sans-serif;
-            background: var(--fondo);
+            font-family: 'Geist', 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+            background: var(--fondo-degradado), var(--fondo);
+            background-attachment: fixed;
             color: var(--texto);
             height: 100svh;
             height: 100dvh;
@@ -73,7 +109,10 @@
             flex-direction: column;
             overflow: hidden;
             -webkit-font-smoothing: antialiased;
+            letter-spacing: -0.005em;
         }
+        /* Todo el panel (riel + pestañas) va dentro de #app: es lo que descubre el círculo de la intro */
+        #app { flex: 1; min-height: 0; display: flex; gap: 1rem; padding: 1rem 1rem 1rem 0.85rem; }
         button { font: inherit; color: inherit; cursor: pointer; border: 0; background: none; padding: 0; }
         :focus-visible { outline: 2px solid var(--verde); outline-offset: 2px; }
 
@@ -92,32 +131,65 @@
         .scroll-fino::-webkit-scrollbar, .card-body::-webkit-scrollbar, main::-webkit-scrollbar { width: 6px; height: 6px; }
         .scroll-fino::-webkit-scrollbar-thumb, .card-body::-webkit-scrollbar-thumb, main::-webkit-scrollbar-thumb { background: var(--borde-fuerte); border-radius: 999px; }
 
-        /* ---------- Barra superior ---------- */
-        .barra {
-            display: grid;
-            grid-template-columns: 1fr auto 1fr;
-            align-items: center;
-            gap: 0.75rem;
-            padding: 0.7rem 1rem;
-            flex-shrink: 0;
+        /* ---------- Riel lateral (navegación) ---------- */
+        .riel {
+            width: 4.1rem; flex-shrink: 0; position: relative; z-index: 15;
+            display: flex; flex-direction: column; align-items: center; gap: 1.1rem;
+            padding: 0.85rem 0 0.9rem;
+            background: linear-gradient(180deg, var(--noche-2) 0%, var(--noche) 38%, var(--noche) 100%);
+            border-radius: 999px;
+            box-shadow: 0 18px 40px -18px rgba(8, 26, 22, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.06);
         }
-        .marca { display: flex; align-items: center; gap: 0.7rem; min-width: 0; }
-        .marca-nombre { font-weight: 600; font-size: 1rem; line-height: 1.1; letter-spacing: 0.02em; }
-        .marca-sub { font-size: 0.75rem; color: var(--texto-suave); line-height: 1.2; }
-        .barra-derecha { display: flex; align-items: center; justify-content: flex-end; gap: 0.6rem; min-width: 0; }
-        #fechaHoy { font-size: 0.78rem; color: var(--texto-suave); white-space: nowrap; display: inline-block; }
-        #fechaHoy::first-letter, #calDetalleFecha::first-letter { text-transform: uppercase; }
-
-        #tabs { display: flex; gap: 0.2rem; background: var(--superficie); border: 1px solid var(--borde); border-radius: 0.85rem; padding: 0.25rem; box-shadow: var(--sombra); }
+        .riel-logo { width: 2.6rem; height: 2.6rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .riel-logo .orbe-mini { width: 1.75rem; height: 1.75rem; background: var(--noche-texto); }
+        #tabs { position: relative; display: flex; flex-direction: column; align-items: center; gap: 0.55rem; flex: 1; padding-top: 0.6rem; }
+        .riel-indicador {
+            position: absolute; left: 0; top: 0; width: 2.6rem; height: 2.6rem; border-radius: 50%; pointer-events: none;
+            background: radial-gradient(circle at 35% 30%, #e1fbf0 0%, var(--menta) 55%, #4fb894 100%);
+            box-shadow: 0 0 0 4px rgba(134, 220, 188, 0.14), 0 0 22px rgba(134, 220, 188, 0.55);
+            transition: transform 0.6s var(--resorte), opacity 0.3s;
+        }
+        /* Muesca oscura al lado del activo, como en el diseño */
+        .riel-indicador::after {
+            content: ''; position: absolute; right: -1.05rem; top: 50%; width: 0.5rem; height: 0.9rem; transform: translateY(-50%);
+            border-radius: 0 999px 999px 0; background: var(--noche);
+        }
         .tab {
-            display: inline-flex; align-items: center; gap: 0.45rem;
-            padding: 0.45rem 1rem; border-radius: 0.6rem; font-size: 0.85rem; font-weight: 500;
-            color: var(--texto-suave); transition: background 0.15s, color 0.15s; white-space: nowrap;
+            position: relative; z-index: 1; width: 2.6rem; height: 2.6rem; border-radius: 50%;
+            display: inline-flex; align-items: center; justify-content: center;
+            color: var(--noche-suave); transition: color 0.25s, background 0.25s, transform 0.2s;
         }
-        .tab svg { width: 1rem; height: 1rem; }
-        .tab:hover { color: var(--texto); background: var(--superficie-2); }
-        .tab.activa { background: var(--verde); color: #fff; }
-        .tab-badge { font-size: 0.65rem; font-weight: 600; background: var(--rojo); color: #fff; border-radius: 999px; padding: 0 0.4rem; line-height: 1.15rem; }
+        .tab svg { width: 1.15rem; height: 1.15rem; }
+        .tab:hover { color: #fff; background: rgba(255, 255, 255, 0.07); }
+        .tab:active { transform: scale(0.92); }
+        .tab.activa { color: var(--noche); background: transparent; }
+        .riel.sin-indicador .tab.activa { background: var(--menta); }
+        /* Etiqueta que aparece al lado del ícono */
+        .tab-label, .riel-btn .tab-label {
+            position: absolute; left: calc(100% + 0.95rem); top: 50%; z-index: 30;
+            transform: translate(-0.4rem, -50%) scale(0.96); transform-origin: left center; opacity: 0; pointer-events: none;
+            background: var(--noche); color: var(--noche-texto); font-size: 0.74rem; font-weight: 500; white-space: nowrap;
+            padding: 0.3rem 0.6rem; border-radius: 0.5rem; box-shadow: 0 8px 20px -8px rgba(0, 0, 0, 0.5);
+            transition: opacity 0.2s, transform 0.25s var(--curva);
+        }
+        .tab:hover .tab-label, .tab:focus-visible .tab-label, .riel-btn:hover .tab-label, .riel-btn:focus-visible .tab-label { opacity: 1; transform: translate(0, -50%) scale(1); }
+        .tab-badge {
+            position: absolute; top: -0.15rem; right: -0.2rem; z-index: 2;
+            font-size: 0.6rem; font-weight: 700; background: var(--naranja); color: var(--naranja-texto);
+            border-radius: 999px; padding: 0 0.32rem; line-height: 1.05rem; min-width: 1.05rem; text-align: center;
+            box-shadow: 0 0 0 2px var(--noche); animation: pop 0.45s var(--resorte);
+        }
+        .riel-pie { display: flex; flex-direction: column; align-items: center; gap: 0.45rem; }
+        .riel-btn {
+            position: relative; width: 2.3rem; height: 2.3rem; border-radius: 50%;
+            display: inline-flex; align-items: center; justify-content: center; color: var(--noche-suave);
+            transition: color 0.2s, background 0.2s;
+        }
+        .riel-btn:hover { color: #fff; background: rgba(255, 255, 255, 0.08); }
+        .riel-btn svg { width: 1.05rem; height: 1.05rem; }
+        .riel-estado { width: 0.55rem; height: 0.55rem; border-radius: 50%; background: #7d8f89; margin-bottom: 0.25rem; transition: background 0.3s; }
+        .riel-estado.on { background: var(--menta); box-shadow: 0 0 0 3px rgba(134, 220, 188, 0.18), 0 0 10px rgba(134, 220, 188, 0.7); }
+        .riel-estado.err { background: var(--rojo); box-shadow: 0 0 0 3px rgba(229, 72, 77, 0.2); }
 
         /* ---------- Componentes base ---------- */
         .card {
@@ -125,6 +197,7 @@
             border: 1px solid var(--borde);
             border-radius: var(--radio);
             box-shadow: var(--sombra);
+            transition: box-shadow 0.35s var(--curva), transform 0.35s var(--curva), border-color 0.35s;
             display: flex;
             flex-direction: column;
             min-height: 0;
@@ -133,56 +206,61 @@
         }
         .card-head {
             display: flex; align-items: center; justify-content: space-between; gap: 0.6rem;
-            padding: 0.75rem 1rem; border-bottom: 1px solid var(--borde); flex-shrink: 0; min-height: 3.25rem;
+            padding: 0.8rem 1.05rem; border-bottom: 1px solid var(--borde); flex-shrink: 0; min-height: 3.3rem;
         }
-        .card-title { display: flex; align-items: center; gap: 0.6rem; font-weight: 600; font-size: 0.95rem; min-width: 0; }
+        .card-title { display: flex; align-items: center; gap: 0.6rem; font-weight: 600; font-size: 0.95rem; min-width: 0; letter-spacing: -0.015em; }
         .card-icono {
-            width: 1.85rem; height: 1.85rem; border-radius: 0.55rem; flex-shrink: 0;
+            width: 1.9rem; height: 1.9rem; border-radius: 0.65rem; flex-shrink: 0;
             display: inline-flex; align-items: center; justify-content: center;
             background: var(--verde-suave); color: var(--verde-texto);
         }
         .card-icono svg { width: 1rem; height: 1rem; }
         .card-sub { font-size: 0.75rem; font-weight: 400; color: var(--texto-suave); }
         .card-body { flex: 1; min-height: 0; overflow-y: auto; }
-        .contador { font-size: 0.68rem; font-weight: 600; background: var(--verde); color: #fff; border-radius: 999px; padding: 0.05rem 0.45rem; }
+        .contador { font-size: 0.68rem; font-weight: 600; background: var(--menta-claro); color: var(--noche); border-radius: 999px; padding: 0.05rem 0.5rem; }
+        :root[data-tema="oscuro"] .contador { background: var(--verde-medio); color: var(--verde-texto); }
 
         .btn-icon {
             display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
-            width: 2rem; height: 2rem; border-radius: 0.6rem; border: 1px solid var(--borde);
-            background: var(--superficie); color: var(--texto-suave); transition: background 0.15s, color 0.15s, border-color 0.15s;
+            width: 2rem; height: 2rem; border-radius: 50%; border: 1px solid var(--borde);
+            background: var(--superficie); color: var(--texto-suave); transition: background 0.2s, color 0.2s, border-color 0.2s, transform 0.15s;
         }
+        .btn-icon:active { transform: scale(0.92); }
         .btn-icon:hover { background: var(--verde-suave); color: var(--verde-texto); border-color: var(--borde-fuerte); }
         .btn-icon svg { width: 1rem; height: 1rem; }
         .btn-texto { font-size: 0.78rem; color: var(--texto-suave); padding: 0.3rem 0.55rem; border-radius: 0.5rem; transition: background 0.15s, color 0.15s; }
         .btn-texto:hover { background: var(--verde-suave); color: var(--verde-texto); }
         .btn-verde {
-            background: var(--verde); color: #fff; border-radius: 0.65rem;
-            padding: 0.55rem 1rem; font-size: 0.85rem; font-weight: 500; white-space: nowrap;
-            transition: background 0.15s, transform 0.1s;
+            background: var(--noche); color: #fff; border-radius: 999px;
+            padding: 0.55rem 1.05rem; font-size: 0.85rem; font-weight: 500; white-space: nowrap;
+            transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+            box-shadow: 0 6px 16px -8px rgba(15, 42, 37, 0.6);
         }
-        .btn-verde:hover { background: var(--verde-oscuro); }
+        .btn-verde:hover { background: var(--noche-2); }
+        :root[data-tema="oscuro"] .btn-verde { background: var(--verde); color: #04201a; }
+        :root[data-tema="oscuro"] .btn-verde:hover { background: var(--menta); }
         .btn-verde:active { transform: scale(0.97); }
         .btn-verde:disabled { opacity: 0.5; cursor: default; }
         .btn-secundario {
             border: 1px solid var(--borde); background: var(--superficie); color: var(--texto);
-            border-radius: 0.6rem; padding: 0.35rem 0.75rem; font-size: 0.8rem; transition: background 0.15s;
+            border-radius: 999px; padding: 0.38rem 0.85rem; font-size: 0.8rem; transition: background 0.2s, border-color 0.2s;
         }
         .btn-secundario:hover { background: var(--verde-suave); }
 
         .input {
-            width: 100%; border: 1px solid var(--borde); border-radius: 0.65rem;
+            width: 100%; border: 1px solid var(--borde); border-radius: 0.8rem;
             padding: 0.6rem 0.75rem; font: inherit; font-size: 0.875rem; color: var(--texto); background: var(--superficie-2);
             outline: none; transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
         }
         .input::placeholder { color: var(--texto-tenue); }
-        .input:focus { border-color: var(--verde); background: var(--superficie); box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15); }
+        .input:focus { border-color: var(--verde); background: var(--superficie); box-shadow: 0 0 0 4px rgba(31, 122, 100, 0.13); }
         .label { font-size: 0.78rem; font-weight: 500; color: var(--texto-suave); margin-bottom: 0.3rem; display: block; }
         .ayuda { font-size: 0.75rem; color: var(--texto-suave); line-height: 1.45; margin: 0; }
         .vacio { color: var(--texto-suave); font-size: 0.82rem; text-align: center; padding: 1.25rem 1rem; line-height: 1.5; }
 
         .pill { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.75rem; font-weight: 500; padding: 0.25rem 0.65rem; border-radius: 999px; white-space: nowrap; }
         .pill .punto { width: 0.45rem; height: 0.45rem; border-radius: 50%; flex-shrink: 0; }
-        .pill.on  { background: var(--verde-medio); color: var(--verde-texto); } .pill.on .punto { background: var(--verde); box-shadow: 0 0 0 3px rgba(16,185,129,0.2); }
+        .pill.on  { background: var(--verde-medio); color: var(--verde-texto); } .pill.on .punto { background: var(--verde); box-shadow: 0 0 0 3px rgba(31,122,100,0.2); }
         .pill.off { background: var(--superficie-2); color: var(--texto-suave); border: 1px solid var(--borde); } .pill.off .punto { background: var(--texto-tenue); }
         .pill.err { background: rgba(239, 68, 68, 0.12); color: #dc2626; } .pill.err .punto { background: var(--rojo); }
         :root[data-tema="oscuro"] .pill.err { color: #fca5a5; }
@@ -208,15 +286,173 @@
         @keyframes aparecer { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
         @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; } }
 
-        /* ---------- Pestaña Principal: Chat | Calendario | Agenda y avisos ---------- */
-        main { flex: 1; min-height: 0; padding: 0 1rem 1rem; }
+        /* ---------- Pestaña Principal (como el "home" del V22) ----------
+           Centro: tarjeta oscura de bienvenida, fila de cifras y, debajo, chat | calendario.
+           Columna derecha: mes con la semana, próximos eventos y notificaciones. */
+        main { flex: 1; min-height: 0; min-width: 0; padding: 0; }
         #panel {
             display: grid;
-            grid-template-columns: minmax(340px, 1fr) minmax(0, 1.7fr) minmax(270px, 0.85fr);
+            grid-template-columns: minmax(0, 1fr) 20.5rem;
             grid-template-rows: minmax(0, 1fr);
             gap: 1rem;
+            overflow-y: auto; overflow-x: hidden;
+            margin: -0.5rem; padding: 0.5rem; /* deja ver las sombras sin que las corte el scroll */
         }
-        #lateral { display: grid; grid-template-rows: minmax(0, 1fr) minmax(0, 1.2fr); gap: 1rem; min-height: 0; min-width: 0; }
+        /* max-content: la bienvenida y las cifras nunca se aplastan; si no cabe todo, el panel hace scroll */
+        .centro { display: grid; grid-template-rows: max-content max-content minmax(26rem, 1fr); gap: 1rem; min-width: 0; min-height: 0; }
+        .trabajo { display: grid; grid-template-columns: minmax(19rem, 0.82fr) minmax(0, 1.18fr); gap: 1rem; min-height: 0; }
+        #lateral { display: grid; grid-template-rows: max-content minmax(13rem, 1fr) minmax(13rem, 1fr); gap: 1rem; min-height: 0; min-width: 0; }
+
+        /* Tarjeta oscura de bienvenida ("Work's always better together") */
+        .hero {
+            position: relative; overflow: hidden; isolation: isolate;
+            display: flex; align-items: center; justify-content: space-between; gap: 1.5rem;
+            padding: 1.35rem 1.6rem; min-height: 9.2rem; border-radius: 1.35rem;
+            background: radial-gradient(42rem 16rem at 105% -30%, rgba(134, 220, 188, 0.16), transparent 60%),
+                        linear-gradient(120deg, var(--noche) 0%, #0d2420 55%, var(--noche-2) 100%);
+            color: var(--noche-texto);
+            box-shadow: 0 24px 48px -26px rgba(8, 30, 25, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+        }
+        .hero::after { /* reflejo suave que cruza la tarjeta */
+            content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+            background: linear-gradient(105deg, transparent 35%, rgba(255, 255, 255, 0.05) 48%, transparent 60%);
+            transform: translateX(-100%); animation: reflejo 7s ease-in-out 2.5s infinite;
+        }
+        @keyframes reflejo { 0%, 70% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+        .hero-texto { min-width: 0; display: flex; flex-direction: column; gap: 0.55rem; }
+        .hero-eyebrow { font-size: 0.74rem; color: var(--noche-suave); display: flex; gap: 0.4rem; flex-wrap: wrap; align-items: center; }
+        .hero-eyebrow #fechaHoy { color: var(--noche-suave); font-size: inherit; }
+        .hero-eyebrow .sep { opacity: 0.45; }
+        .hero-titulo { margin: 0; font-size: clamp(1.45rem, 1.1rem + 1vw, 2.05rem); font-weight: 500; line-height: 1.1; letter-spacing: -0.035em; }
+        .hero-titulo em, .pagina-titulo em { font-family: var(--serif); font-style: italic; font-weight: 400; color: #e9c9a6; letter-spacing: -0.01em; padding-right: 0.06em; }
+        .hero-sub { margin: 0; font-size: 0.8rem; line-height: 1.5; color: var(--noche-suave); max-width: 34rem; }
+        .hero-acciones { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; margin-top: 0.2rem; }
+        .btn-naranja {
+            display: inline-flex; align-items: center; gap: 0.45rem; padding: 0.5rem 1rem 0.5rem 0.7rem; border-radius: 999px;
+            background: var(--naranja); color: var(--naranja-texto); font-size: 0.82rem; font-weight: 600;
+            box-shadow: 0 10px 22px -10px rgba(243, 154, 100, 0.9), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+            transition: transform 0.2s var(--resorte), filter 0.2s;
+        }
+        .btn-naranja:hover { filter: brightness(1.05); transform: translateY(-1px); }
+        .btn-naranja:active { transform: scale(0.96); }
+        .btn-naranja .icono { width: 1.35rem; height: 1.35rem; border-radius: 50%; background: rgba(90, 37, 10, 0.12); display: inline-flex; align-items: center; justify-content: center; }
+        .btn-naranja svg { width: 0.85rem; height: 0.85rem; }
+        .hero-lado { display: flex; flex-direction: column; align-items: flex-end; gap: 0.7rem; flex-shrink: 0; }
+        .pila { display: flex; align-items: center; }
+        .pila-ir {
+            width: 2.1rem; height: 2.1rem; border-radius: 50%; margin-right: 0.5rem; display: inline-flex; align-items: center; justify-content: center;
+            border: 1px solid rgba(255, 255, 255, 0.18); color: var(--noche-texto); transition: background 0.2s, transform 0.2s;
+        }
+        .pila-ir:hover { background: rgba(255, 255, 255, 0.1); transform: translateX(2px); }
+        .pila-ir svg { width: 0.9rem; height: 0.9rem; }
+        .avatar {
+            width: 2.35rem; height: 2.35rem; border-radius: 50%; flex-shrink: 0; margin-left: -0.6rem;
+            display: inline-flex; align-items: center; justify-content: center; color: var(--noche);
+            border: 2px solid var(--noche); box-shadow: 0 4px 10px -4px rgba(0, 0, 0, 0.6);
+            transition: transform 0.25s var(--resorte);
+        }
+        .avatar:first-of-type { margin-left: 0; }
+        .avatar:hover { transform: translateY(-3px); z-index: 1; }
+        .avatar svg { width: 1.05rem; height: 1.05rem; }
+        .avatar .orbe-mini { width: 1.3rem; height: 1.3rem; background: var(--noche); animation: none; }
+        .av-menta { background: var(--menta); } .av-durazno { background: var(--durazno-fuerte); } .av-crema { background: #efe6d6; }
+        .av-ig { background: linear-gradient(45deg, #f58529, #dd2a7b 55%, #8134af); color: #fff; }
+        .hero #estadoServidor { background: rgba(255, 255, 255, 0.08); color: var(--noche-texto); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .hero #estadoServidor.on .punto { background: var(--menta); box-shadow: 0 0 0 3px rgba(134, 220, 188, 0.2), 0 0 8px var(--menta); }
+        .hero #estadoServidor.err .punto { background: #ff8a80; }
+        .hero #estadoServidor.off .punto { background: var(--noche-suave); animation: latido 1.2s ease-in-out infinite; }
+        @keyframes latido { 50% { opacity: 0.3; } }
+
+        /* Fila de cifras ("Members" | "Data" | "Impact") */
+        .stats { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, 0.95fr); gap: 1rem; }
+        .stat { padding: 0.95rem 1.05rem 1rem; gap: 0.75rem; min-height: 10.6rem; }
+        .stat:hover, .stat-perfil:hover { transform: translateY(-2px); box-shadow: var(--sombra-alta); }
+        .stat-head { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+        .stat-titulo { font-size: 0.92rem; font-weight: 600; letter-spacing: -0.015em; display: flex; align-items: center; gap: 0.45rem; }
+        .stat-etiqueta { font-size: 0.74rem; color: var(--texto-suave); }
+        .chip-menta { font-size: 0.64rem; font-weight: 600; padding: 0.05rem 0.45rem; border-radius: 999px; background: var(--menta-claro); color: var(--noche); }
+        :root[data-tema="oscuro"] .chip-menta { background: var(--verde-medio); color: var(--verde-texto); }
+        .btn-mini { width: 1.75rem; height: 1.75rem; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; color: var(--texto-suave); transition: background 0.2s, color 0.2s, transform 0.2s; }
+        .btn-mini:hover { background: var(--superficie-2); color: var(--texto); transform: translateX(2px); }
+        .btn-mini svg { width: 1rem; height: 1rem; }
+
+        /* "Lo que sabe ANA": círculos como los miembros del equipo */
+        .miembros { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.4rem; align-items: start; }
+        .miembro { display: flex; flex-direction: column; align-items: center; gap: 0.35rem; text-align: center; padding: 0.15rem 0; border-radius: 0.8rem; transition: transform 0.25s var(--resorte); }
+        .miembro:hover { transform: translateY(-2px); }
+        .miembro-foto {
+            --p: 0; width: 3.3rem; height: 3.3rem; border-radius: 50%; position: relative; display: flex; align-items: center; justify-content: center;
+            background: conic-gradient(var(--verde) calc(var(--p) * 1%), var(--borde) 0);
+            transition: --p 1.2s var(--curva);
+        }
+        .miembro-foto::before { content: ''; position: absolute; inset: 3px; border-radius: 50%; background: var(--superficie); }
+        .miembro-foto i { position: relative; width: calc(100% - 10px); height: calc(100% - 10px); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--noche); }
+        .miembro-foto svg { width: 1.2rem; height: 1.2rem; }
+        .miembro-foto .ok { position: absolute; right: 1px; bottom: 2px; width: 0.7rem; height: 0.7rem; border-radius: 50%; background: var(--menta); border: 2px solid var(--superficie); transform: scale(0); transition: transform 0.4s var(--resorte); }
+        .miembro-foto.lleno .ok { transform: scale(1); }
+        .miembro b { font-size: 0.74rem; font-weight: 500; line-height: 1.15; }
+        .miembro small { font-size: 0.7rem; color: var(--texto-suave); display: block; }
+        .miembro .odo { font-size: 0.78rem; font-weight: 600; color: var(--texto); }
+
+        /* "Agenda": cifra grande que gira y barras de reparto ("Data") */
+        .cifra { font-size: 2.55rem; font-weight: 500; letter-spacing: -0.045em; line-height: 1; display: flex; align-items: flex-end; gap: 0.45rem; }
+        .cifra small { font-size: 0.78rem; font-weight: 400; letter-spacing: 0; color: var(--texto-suave); padding-bottom: 0.3rem; }
+        .reparto { display: flex; gap: 0.35rem; margin-top: auto; }
+        .reparto-col { display: flex; flex-direction: column; gap: 0.3rem; min-width: 3.4rem; flex: var(--peso, 1) 1 0; transition: flex-grow 1s var(--curva); }
+        .reparto-col span { font-size: 0.66rem; color: var(--texto-tenue); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-left: 1px solid var(--borde); padding-left: 0.3rem; line-height: 1.6rem; }
+        .reparto-col i { display: block; height: 0.55rem; border-radius: 999px; transform-origin: left; transition: transform 1s var(--curva); }
+        .reparto-col small { font-size: 0.66rem; color: var(--texto-suave); display: flex; align-items: center; gap: 0.25rem; }
+        .reparto-col small::before { content: ''; width: 0.4rem; height: 0.4rem; border-radius: 50%; background: currentColor; opacity: 0.8; }
+        .c-verde i { background: linear-gradient(90deg, #1f7a64, #2f9c7d); } .c-verde small { color: var(--verde-texto); }
+        .c-menta i { background: var(--menta); } .c-menta small { color: #2f9c7d; }
+        .c-durazno i { background: var(--durazno-fuerte); } .c-durazno small { color: #c76a35; }
+
+        /* "Esta semana": barras verticales en forma de píldora ("Impact") */
+        .seg-tabs { display: inline-flex; gap: 0.75rem; }
+        .seg-tabs button { font-size: 0.74rem; color: var(--texto-tenue); transition: color 0.2s; position: relative; }
+        .seg-tabs button.activa { color: var(--texto); font-weight: 500; }
+        .seg-tabs button.activa::after { content: ''; position: absolute; left: 0; right: 0; bottom: -0.25rem; height: 2px; border-radius: 2px; background: var(--verde); animation: crecerX 0.35s var(--curva); }
+        @keyframes crecerX { from { transform: scaleX(0); } }
+        .columnas { flex: 1; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 0.35rem; align-items: stretch; min-height: 6.2rem; padding-top: 1.4rem; }
+        .columna { display: flex; flex-direction: column; align-items: center; gap: 0.3rem; min-height: 0; position: relative; }
+        .pista { flex: 1 1 0; width: 100%; min-height: 0; display: flex; align-items: flex-end; justify-content: center; }
+        .columna i {
+            width: 100%; max-width: 1.55rem; border-radius: 999px; background: var(--durazno); height: 0; min-height: 0.55rem;
+            transition: height 1.1s var(--curva), background 0.3s; transition-delay: calc(var(--n, 0) * 60ms); position: relative;
+        }
+        .columna.alta i { background: var(--barra-verde); box-shadow: 0 8px 18px -8px rgba(31, 122, 100, 0.7); }
+        .columna small { font-size: 0.62rem; color: var(--texto-tenue); text-transform: uppercase; }
+        .columna.hoy small { color: var(--texto); font-weight: 600; }
+        .globo {
+            position: absolute; left: 50%; bottom: calc(100% + 0.35rem); transform: translateX(-50%) scale(0.6); opacity: 0;
+            background: var(--noche); color: #fff; font-size: 0.62rem; font-weight: 600; padding: 0.12rem 0.4rem; border-radius: 999px; white-space: nowrap;
+            transition: opacity 0.3s, transform 0.45s var(--resorte);
+        }
+        .columna.alta .globo { opacity: 1; transform: translateX(-50%) scale(1); transition-delay: 0.9s; }
+
+        /* Mes y semana ("November, 2026") */
+        #semanaPanel { padding: 0.15rem 0.2rem 0.4rem; display: flex; flex-direction: column; gap: 0.85rem; }
+        .semana-head { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+        #semanaTitulo { font-size: 1.45rem; font-weight: 500; letter-spacing: -0.04em; }
+        #semanaTitulo::first-letter { text-transform: uppercase; }
+        .flechas { display: flex; gap: 0.35rem; }
+        .flechas .btn-icon { width: 1.9rem; height: 1.9rem; box-shadow: var(--sombra); border-color: transparent; }
+        .semana { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 0.25rem; }
+        .semana-dia {
+            display: flex; flex-direction: column; align-items: center; gap: 0.3rem; padding: 0.45rem 0 0.5rem; border-radius: 0.85rem;
+            font-size: 0.66rem; color: var(--texto-suave); position: relative; transition: background 0.25s, color 0.25s, transform 0.25s var(--resorte);
+        }
+        .semana-dia b { font-size: 0.92rem; font-weight: 500; color: var(--texto); }
+        .semana-dia:hover { background: rgba(255, 255, 255, 0.55); transform: translateY(-2px); }
+        :root[data-tema="oscuro"] .semana-dia:hover { background: var(--superficie-2); }
+        .semana-dia.sel { background: var(--superficie); box-shadow: var(--sombra); }
+        .semana-dia.hoy { background: var(--noche); color: var(--noche-suave); box-shadow: 0 10px 20px -10px rgba(15, 42, 37, 0.8); }
+        .semana-dia.hoy b { color: #fff; }
+        :root[data-tema="oscuro"] .semana-dia.hoy { background: var(--menta); color: rgba(4, 32, 26, 0.7); box-shadow: 0 0 18px -4px rgba(134, 220, 188, 0.5); }
+        :root[data-tema="oscuro"] .semana-dia.hoy b { color: #04201a; }
+        :root[data-tema="oscuro"] .semana-dia.hoy .marca-ev { background: var(--noche); }
+        .semana-dia .marca-ev { width: 0.3rem; height: 0.3rem; border-radius: 50%; background: var(--verde); position: absolute; bottom: 0.2rem; }
+        .semana-dia.hoy .marca-ev { background: var(--menta); }
 
         /* ---------- Chat ---------- */
         #chatMensajes { padding: 1rem; display: flex; flex-direction: column; gap: 0.75rem; }
@@ -231,7 +467,8 @@
             white-space: pre-wrap;
             word-break: break-word;
         }
-        .msg.user .burbuja { background: var(--verde); color: #fff; border-bottom-right-radius: 0.35rem; }
+        .msg.user .burbuja { background: var(--noche); color: var(--noche-texto); border-bottom-right-radius: 0.35rem; }
+        :root[data-tema="oscuro"] .msg.user .burbuja { background: var(--verde-oscuro); color: #fff; }
         .msg.ana  .burbuja { background: var(--superficie-2); color: var(--texto); border: 1px solid var(--borde); border-bottom-left-radius: 0.35rem; }
         .msg.ana .fotos { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.55rem; }
         .msg.ana .fotos img { width: 6rem; height: 6rem; object-fit: cover; border-radius: 0.65rem; border: 1px solid var(--borde); }
@@ -256,18 +493,20 @@
         .chat-entrada { padding: 0.75rem; border-top: 1px solid var(--borde); flex-shrink: 0; }
         .chat-caja {
             display: flex; align-items: center; gap: 0.4rem; padding: 0.35rem;
-            background: var(--superficie-2); border: 1px solid var(--borde); border-radius: 0.9rem; transition: border-color 0.15s, box-shadow 0.15s;
+            background: var(--superficie-2); border: 1px solid var(--borde); border-radius: 999px; transition: border-color 0.2s, box-shadow 0.2s;
         }
-        .chat-caja:focus-within { border-color: var(--verde); box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15); }
+        .chat-caja:focus-within { border-color: var(--verde); box-shadow: 0 0 0 4px rgba(31, 122, 100, 0.13); }
         #userInput { flex: 1; min-width: 0; border: 0; background: transparent; outline: none; font: inherit; font-size: 0.9rem; color: var(--texto); padding: 0.45rem 0.6rem; }
         #userInput::placeholder { color: var(--texto-tenue); }
-        .btn-chat { width: 2.35rem; height: 2.35rem; border-radius: 0.65rem; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; transition: background 0.15s, transform 0.1s; }
+        .btn-chat { width: 2.35rem; height: 2.35rem; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; transition: background 0.15s, transform 0.1s; }
         .btn-chat:active { transform: scale(0.94); }
         .btn-chat svg { width: 1.1rem; height: 1.1rem; }
-        #voiceBtn { background: var(--verde-medio); color: var(--verde-texto); }
+        #voiceBtn { background: var(--menta-claro); color: var(--noche); }
+        :root[data-tema="oscuro"] #voiceBtn { background: var(--verde-medio); color: var(--verde-texto); }
         #voiceBtn:hover { filter: brightness(0.96); }
-        #sendBtn { background: var(--verde); color: #fff; }
-        #sendBtn:hover { background: var(--verde-oscuro); }
+        #sendBtn { background: var(--noche); color: #fff; }
+        #sendBtn:hover { background: var(--noche-2); }
+        :root[data-tema="oscuro"] #sendBtn { background: var(--verde); color: #04201a; }
         #sendBtn:disabled { opacity: 0.5; cursor: default; }
         #voiceBtn.recording { background: var(--rojo); color: #fff; animation: pulseRec 1.2s infinite; }
         @keyframes pulseRec {
@@ -289,7 +528,7 @@
         .cal-dia-nombre { font-size: 0.7rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.08em; color: var(--texto-tenue); text-align: center; padding: 0.35rem 0 0.25rem; }
         .cal-dia {
             position: relative;
-            border-radius: 0.65rem;
+            border-radius: 0.8rem;
             border: 1px solid transparent;
             background: var(--superficie-2);
             padding: 0.3rem 0.35rem;
@@ -302,13 +541,17 @@
         .cal-dia.otro-mes { opacity: 0.4; }
         .cal-dia.seleccionado { border-color: var(--verde); background: var(--verde-suave); }
         .cal-num { font-size: 0.8rem; font-weight: 500; line-height: 1; display: inline-flex; align-items: center; justify-content: center; min-width: 1.45rem; height: 1.45rem; border-radius: 999px; align-self: flex-start; }
-        .cal-dia.hoy .cal-num { background: var(--verde); color: #fff; font-weight: 600; }
+        .cal-dia.hoy { background: var(--noche); }
+        .cal-dia.hoy .cal-num { background: var(--menta); color: var(--noche); font-weight: 600; }
+        .cal-dia.hoy:hover { background: var(--noche-2); }
         .cal-evento {
             font-size: 0.68rem; line-height: 1.25; padding: 1px 6px; border-radius: 5px; flex-shrink: 0;
             background: var(--verde-medio); color: var(--verde-texto); font-weight: 500;
             overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow-wrap: anywhere; hyphens: auto;
             border-left: 3px solid var(--verde);
         }
+        .cal-dia.hoy .cal-evento { background: rgba(134, 220, 188, 0.18); color: var(--menta-claro); border-left-color: var(--menta); }
+        .cal-dia.hoy .cal-evento.manual { background: rgba(91, 155, 213, 0.22); color: #d6e8f8; }
         .cal-evento.manual { background: var(--azul-suave); color: #0369a1; border-left-color: var(--azul); }
         :root[data-tema="oscuro"] .cal-evento.manual { color: #7dd3fc; }
         .cal-mas { font-size: 0.66rem; color: var(--texto-suave); padding-left: 2px; }
@@ -318,7 +561,7 @@
         .leyenda { display: inline-flex; align-items: center; gap: 0.75rem; font-size: 0.72rem; color: var(--texto-suave); }
         .leyenda i { display: inline-block; width: 0.55rem; height: 0.55rem; border-radius: 3px; margin-right: 0.3rem; background: var(--verde); vertical-align: -1px; }
         .leyenda i.manual { background: var(--azul); }
-        #calTitulo { font-size: 0.95rem; font-weight: 600; text-transform: capitalize; min-width: 9.5rem; text-align: center; }
+        #calTitulo { font-size: 0.98rem; font-weight: 600; letter-spacing: -0.02em; text-transform: capitalize; min-width: 9.5rem; text-align: center; }
 
         #calDetalle { border-top: 1px solid var(--borde); padding: 0.65rem 0.85rem; flex-shrink: 0; display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
         #calDetalleFecha { font-size: 0.8rem; font-weight: 600; color: var(--verde-texto); white-space: nowrap; display: inline-block; }
@@ -345,8 +588,9 @@
             width: 2.6rem; flex-shrink: 0; text-align: center; border-radius: 0.6rem; padding: 0.25rem 0;
             background: var(--verde-suave); color: var(--verde-texto); line-height: 1.1;
         }
-        .prox-fecha.manual { background: var(--azul-suave); color: #0369a1; }
-        :root[data-tema="oscuro"] .prox-fecha.manual { color: #7dd3fc; }
+        .prox-fecha.manual { background: #fde7d8; color: #a4501f; }
+        :root[data-tema="oscuro"] .prox-fecha.manual { background: rgba(243, 154, 100, 0.16); }
+        :root[data-tema="oscuro"] .prox-fecha.manual { color: #f6b991; }
         .prox-fecha b { display: block; font-size: 1rem; font-weight: 600; }
         .prox-fecha small { display: block; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.05em; }
         .prox-titulo { font-size: 0.85rem; font-weight: 500; display: block; }
@@ -359,24 +603,82 @@
         .notif-punto { width: 0.55rem; height: 0.55rem; border-radius: 50%; margin-top: 0.4rem; flex-shrink: 0; }
         .notif.ok     .notif-punto { background: var(--verde); }
         .notif.info   .notif-punto { background: var(--azul); }
-        .notif.alerta .notif-punto { background: var(--ambar); }
+        .notif.alerta .notif-punto { background: var(--naranja); }
         .notif.error  .notif-punto { background: var(--rojo); }
         .notif-texto { font-size: 0.84rem; line-height: 1.4; }
         .notif-hora { font-size: 0.72rem; color: var(--texto-tenue); margin-top: 0.15rem; }
 
-        /* ---------- Pestañas Empresa e Inventario: menú de apartados | apartado activo ---------- */
-        #empresa, #inventario { display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 1rem; }
+        /* ---------- Pestañas Empresa, Inventario y Conexiones ----------
+           Cada una es una página con scroll: arriba la cabecera (perfil de la empresa o título grande, como "Hannah Brooks"
+           y "Saved for later" en el V22) y debajo el área de trabajo, que ocupa toda la altura de la ventana. */
+        .pagina { display: flex; flex-direction: column; gap: 1rem; overflow-y: auto; overflow-x: hidden; margin: -0.5rem; padding: 0.5rem; }
+        .pagina-grid { display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 1rem; flex-shrink: 0; height: max(34rem, calc(100dvh - 2rem)); min-height: 0; }
+        .pagina-cabecera { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; flex-wrap: wrap; padding: 0.35rem 0.25rem 0.2rem; flex-shrink: 0; }
+        .pagina-titulo { margin: 0; font-size: clamp(1.7rem, 1.3rem + 1vw, 2.3rem); font-weight: 500; letter-spacing: -0.045em; line-height: 1.05; }
+        .pagina-titulo em { color: var(--verde); }
+        .pagina-sub { margin: 0.35rem 0 0; font-size: 0.82rem; color: var(--texto-suave); }
+        .filtros { display: inline-flex; align-items: center; gap: 0.2rem; padding: 0.22rem; border-radius: 999px; background: rgba(255, 255, 255, 0.6); border: 1px solid var(--borde); backdrop-filter: blur(8px); }
+        :root[data-tema="oscuro"] .filtros { background: var(--superficie); }
+        .filtros button { font-size: 0.76rem; padding: 0.32rem 0.8rem; border-radius: 999px; color: var(--texto-suave); transition: background 0.25s, color 0.25s; }
+        .filtros button:hover { color: var(--texto); }
+        .filtros button.activa { background: var(--noche); color: #fff; }
+        :root[data-tema="oscuro"] .filtros button.activa { background: var(--verde); color: #04201a; }
+
+        /* Perfil de la empresa (portada oscura + datos + cifras) */
+        .perfil-tarjeta { flex-shrink: 0; padding: 0; }
+        .perfil-portada {
+            height: 6.2rem; position: relative; overflow: hidden;
+            background: radial-gradient(30rem 10rem at 85% 0%, rgba(134, 220, 188, 0.18), transparent 60%),
+                        linear-gradient(120deg, var(--noche) 0%, #0d2420 60%, var(--noche-2) 100%);
+        }
+        .perfil-portada::after {
+            content: ''; position: absolute; inset: 0; opacity: 0.35;
+            background-image: radial-gradient(rgba(255, 255, 255, 0.18) 1px, transparent 1px); background-size: 18px 18px;
+            mask-image: linear-gradient(90deg, transparent, #000 60%); -webkit-mask-image: linear-gradient(90deg, transparent, #000 60%);
+        }
+        .perfil-cuerpo { display: flex; align-items: flex-end; gap: 1rem; padding: 0 1.4rem 1.1rem; flex-wrap: wrap; }
+        .perfil-avatar {
+            width: 5rem; height: 5rem; border-radius: 50%; margin-top: -2.4rem; flex-shrink: 0; position: relative;
+            background: var(--menta-claro); border: 4px solid var(--superficie); box-shadow: var(--sombra);
+            display: flex; align-items: center; justify-content: center; font-size: 1.6rem; font-weight: 600; color: var(--noche);
+        }
+        .perfil-avatar .orbe-mini { width: 2.6rem; height: 2.6rem; }
+        .perfil-datos { flex: 1; min-width: 12rem; padding-top: 0.6rem; }
+        .perfil-nombre { margin: 0; font-size: 1.3rem; font-weight: 600; letter-spacing: -0.03em; }
+        .perfil-rol { font-size: 0.8rem; color: var(--texto-suave); margin-top: 0.1rem; }
+        .perfil-meta { display: flex; flex-wrap: wrap; gap: 0.3rem 0.9rem; margin-top: 0.4rem; font-size: 0.74rem; color: var(--texto-tenue); }
+        .perfil-meta span { display: inline-flex; align-items: center; gap: 0.3rem; }
+        .perfil-meta svg { width: 0.8rem; height: 0.8rem; }
+        .perfil-acciones { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+        .perfil-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1rem; flex-shrink: 0; }
+        .stat-perfil { padding: 0.9rem 1rem; gap: 0.35rem; }
+        .stat-perfil .stat-etiqueta { display: flex; align-items: center; gap: 0.45rem; color: var(--texto); font-weight: 500; }
+        .stat-perfil .cifra { font-size: 1.95rem; margin-top: 0.35rem; }
+        .stat-perfil .pie { font-size: 0.72rem; color: var(--texto-tenue); }
+        .icono-cuadro { width: 1.6rem; height: 1.6rem; border-radius: 0.5rem; background: var(--verde-suave); color: var(--verde-texto); display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .icono-cuadro svg { width: 0.85rem; height: 0.85rem; }
+
+        /* Cifras que giran como un contador (odómetro) */
+        .odo { display: inline-flex; font-variant-numeric: tabular-nums; white-space: nowrap; }
+        .od-col { display: inline-block; height: 1.08em; overflow: hidden; line-height: 1.08em;
+            -webkit-mask-image: linear-gradient(transparent 0, #000 22%, #000 78%, transparent 100%); mask-image: linear-gradient(transparent 0, #000 22%, #000 78%, transparent 100%); }
+        .od-tira { display: flex; flex-direction: column; will-change: transform; }
+        .od-tira span, .od-sig { display: block; height: 1.08em; line-height: 1.08em; text-align: center; }
+        .od-sig { display: inline-block; }
+        .od-vis { display: inline-flex; }
+        .palabra { display: inline-block; white-space: nowrap; }
         #empresaNav, #inventarioNav { padding: 0.6rem; gap: 0.2rem; overflow-y: auto; }
         .subnav-titulo { font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--texto-tenue); padding: 0.5rem 0.6rem 0.35rem; }
         .subnav-item {
             display: flex; align-items: center; gap: 0.7rem; width: 100%; text-align: left;
             padding: 0.6rem 0.65rem; border-radius: 0.75rem; transition: background 0.15s; position: relative;
         }
-        .subnav-item:hover { background: var(--superficie-2); }
+        .subnav-item { transition: background 0.25s, transform 0.25s var(--resorte); }
+        .subnav-item:hover { background: var(--superficie-2); transform: translateX(2px); }
         .subnav-item.activa { background: var(--verde-suave); }
-        .subnav-item.activa::before { content: ''; position: absolute; left: 0; top: 0.65rem; bottom: 0.65rem; width: 3px; border-radius: 3px; background: var(--verde); }
-        .subnav-item .card-icono { background: var(--superficie-2); color: var(--texto-suave); }
-        .subnav-item.activa .card-icono { background: var(--verde); color: #fff; }
+        .subnav-item .card-icono { background: var(--superficie-2); color: var(--texto-suave); transition: background 0.3s, color 0.3s; }
+        .subnav-item.activa .card-icono { background: var(--noche); color: var(--menta); }
+        :root[data-tema="oscuro"] .subnav-item.activa .card-icono { background: var(--verde); color: #04201a; }
         .subnav-item b { display: block; font-size: 0.88rem; font-weight: 600; }
         .subnav-item small { display: block; font-size: 0.72rem; color: var(--texto-suave); margin-top: 0.05rem; }
         .subnav-num { margin-left: auto; font-size: 0.7rem; font-weight: 600; color: var(--texto-suave); background: var(--superficie-2); border: 1px solid var(--borde); border-radius: 999px; padding: 0 0.45rem; line-height: 1.2rem; }
@@ -387,7 +689,7 @@
         .resumen-titulo { display: flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; font-weight: 600; }
         .resumen-titulo .orbe-mini { width: 1.3rem; height: 1.3rem; animation: none; }
         .barra-progreso { height: 6px; border-radius: 999px; background: var(--borde); overflow: hidden; }
-        .barra-progreso span { display: block; height: 100%; border-radius: inherit; background: var(--verde); transition: width 0.4s ease; }
+        .barra-progreso span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--verde), #3fb38f); transition: width 1s var(--curva); }
         .resumen-dato { font-size: 0.74rem; color: var(--texto-suave); display: flex; justify-content: space-between; gap: 0.5rem; }
         .resumen-dato b { color: var(--texto); font-weight: 500; }
 
@@ -520,12 +822,13 @@
         .bib-sub { font-size: 0.78rem; font-weight: 600; color: var(--texto-suave); text-transform: uppercase; letter-spacing: 0.06em; margin: 0 0 0.6rem; display: flex; align-items: center; gap: 0.4rem; }
         .bib-sub span { font-weight: 500; color: var(--texto-tenue); }
         .bib-imagenes { display: grid; grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr)); gap: 0.75rem; }
-        .bib-img { border: 1px solid var(--borde); border-radius: 0.8rem; overflow: hidden; background: var(--superficie); display: flex; flex-direction: column; animation: aparecer 0.25s ease-out; }
+        .bib-img { border: 1px solid var(--borde); border-radius: 1rem; overflow: hidden; background: var(--superficie); display: flex; flex-direction: column; animation: aparecer 0.35s var(--curva); padding: 0.35rem; box-shadow: var(--sombra); transition: transform 0.3s var(--curva), box-shadow 0.3s; }
+        .bib-img:hover { transform: translateY(-3px); box-shadow: var(--sombra-alta); }
         .bib-img[draggable="true"] { cursor: grab; }
-        .bib-img-ver { position: relative; aspect-ratio: 4 / 3; background: var(--superficie-2); display: flex; align-items: center; justify-content: center; overflow: hidden; color: var(--texto-tenue); font-size: 0.75rem; font-weight: 600; text-transform: uppercase; }
+        .bib-img-ver { position: relative; aspect-ratio: 4 / 3; border-radius: 0.75rem; background: var(--superficie-2); display: flex; align-items: center; justify-content: center; overflow: hidden; color: var(--texto-tenue); font-size: 0.75rem; font-weight: 600; text-transform: uppercase; }
         .bib-img-ver img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.25s; }
         .bib-img-ver:hover img { transform: scale(1.04); }
-        .bib-img-ver .estado { text-transform: none; letter-spacing: 0; position: absolute; top: 0.45rem; left: 0.45rem; box-shadow: 0 1px 3px rgba(15,23,42,0.15); }
+        .bib-img-ver .estado { text-transform: none; letter-spacing: 0; position: absolute; top: 0.45rem; left: 0.45rem; box-shadow: 0 1px 3px rgba(15,23,42,0.15); background: var(--noche); color: #fff; }
         .bib-img-pie { padding: 0.5rem 0.6rem; display: flex; flex-direction: column; gap: 0.35rem; }
         .bib-img-nombre { font-size: 0.8rem; font-weight: 500; }
         .bib-img-acciones { display: flex; align-items: center; gap: 0.3rem; }
@@ -543,7 +846,7 @@
         .visor-pie button { color: #fff; background: rgba(255,255,255,0.15); border-radius: 0.5rem; padding: 0.3rem 0.8rem; }
 
         /* ---------- Pestaña Conexiones ---------- */
-        #conexiones { overflow-y: auto; display: flex; flex-direction: column; gap: 1rem; }
+        #conexiones .card { flex-shrink: 0; }
         .canal-head-extra { display: flex; align-items: center; gap: 0.5rem; }
         .seccion { padding: 1rem 1.1rem; display: flex; flex-direction: column; gap: 0.9rem; }
         .logo-canal { width: 1.85rem; height: 1.85rem; border-radius: 0.55rem; display: inline-flex; align-items: center; justify-content: center; color: #fff; flex-shrink: 0; }
@@ -556,7 +859,8 @@
         .icono-boton { width: 0.95rem; height: 0.95rem; flex-shrink: 0; }
 
         .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr)); gap: 0.6rem; }
-        .kpi { background: var(--superficie-2); border: 1px solid var(--borde); border-radius: 0.75rem; padding: 0.6rem 0.75rem; min-width: 0; }
+        .kpi { background: var(--superficie-2); border: 1px solid var(--borde); border-radius: 0.95rem; padding: 0.7rem 0.85rem; min-width: 0; animation: aparecer 0.4s var(--curva) both; }
+        .kpi:nth-child(2) { animation-delay: 0.06s; } .kpi:nth-child(3) { animation-delay: 0.12s; } .kpi:nth-child(4) { animation-delay: 0.18s; }
         .kpi-label { font-size: 0.72rem; color: var(--texto-suave); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .kpi-valor { font-size: 1.4rem; font-weight: 600; line-height: 1.2; margin-top: 0.1rem; color: var(--texto); }
         .kpi-delta { font-size: 0.72rem; margin-top: 0.1rem; color: var(--texto-suave); }
@@ -566,14 +870,15 @@
         .grafica svg { width: 100%; height: 9.5rem; display: block; overflow: visible; }
         .grafica .eje { stroke: var(--borde); stroke-width: 1; }
         .grafica .tick { font-size: 0.62rem; fill: var(--texto-tenue); }
-        .grafica .barra { fill: var(--verde-oscuro); transition: opacity 0.15s; }
-        .grafica .barra.contexto { fill: var(--verde-medio); }
+        .grafica .barra { fill: var(--verde); transition: opacity 0.15s; transform-box: fill-box; transform-origin: bottom; animation: crecerY 0.9s var(--curva) both; }
+        .grafica .barra.contexto { fill: var(--durazno-fuerte); opacity: 0.55; }
+        @keyframes crecerY { from { transform: scaleY(0); } }
         .grafica .hit { fill: transparent; }
         .grafica .hit:hover + .barra, .grafica .barra:hover { opacity: 0.75; }
         .grafica .etiqueta { font-size: 0.66rem; fill: var(--texto); font-weight: 500; }
         .tooltip {
             position: absolute; pointer-events: none; z-index: 5; display: none;
-            background: #0f172a; color: #fff; font-size: 0.72rem; padding: 0.3rem 0.5rem; border-radius: 0.4rem;
+            background: var(--noche); color: #fff; font-size: 0.72rem; padding: 0.3rem 0.55rem; border-radius: 999px;
             white-space: nowrap; transform: translate(-50%, calc(-100% - 8px));
         }
         .grafica-titulo { font-size: 0.75rem; color: var(--texto-suave); margin-bottom: 0.25rem; }
@@ -627,7 +932,9 @@
             border: 1px solid var(--borde); border-radius: 0.9rem; background: var(--superficie-2); transition: border-color 0.15s, background 0.15s;
         }
         .metodo:hover { border-color: var(--verde); background: var(--verde-suave); }
-        .metodo .card-icono { width: 2.3rem; height: 2.3rem; background: var(--verde); color: #fff; }
+        .metodo { transition: border-color 0.2s, background 0.2s, transform 0.3s var(--resorte); }
+        .metodo:hover { transform: translateY(-2px); }
+        .metodo .card-icono { width: 2.3rem; height: 2.3rem; background: var(--noche); color: var(--menta); }
         .metodo b { font-size: 0.92rem; font-weight: 600; }
         .metodo small { font-size: 0.76rem; color: var(--texto-suave); line-height: 1.45; }
         .inv-inicio { padding: 1.5rem 1.25rem; display: flex; flex-direction: column; gap: 1rem; }
@@ -651,7 +958,7 @@
         .conexion-estado small { display: block; font-size: 0.75rem; color: var(--texto-suave); }
 
         .dialogo {
-            border: 0; padding: 0; border-radius: 1rem; width: min(580px, calc(100vw - 2rem));
+            border: 0; padding: 0; border-radius: 1.3rem; width: min(580px, calc(100vw - 2rem));
             background: var(--superficie); color: var(--texto); box-shadow: 0 24px 60px rgba(15, 23, 42, 0.3);
         }
         .dialogo::backdrop { background: rgba(15, 23, 42, 0.55); backdrop-filter: blur(3px); }
@@ -661,8 +968,13 @@
 
         /* ---------- Login ---------- */
         body.sin-sesion > :not(#login) { display: none !important; }
-        .login { position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; padding: 1rem; background: var(--fondo); overflow-y: auto; }
-        .login-tarjeta { width: min(400px, 100%); padding: 1.75rem; gap: 1rem; overflow: visible; }
+        .login {
+            position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; padding: 1rem; overflow-y: auto;
+            background: radial-gradient(38rem 30rem at 50% 58%, rgba(31, 92, 78, 0.55), transparent 70%), linear-gradient(180deg, #071617, #050e0f);
+        }
+        .login-tarjeta { width: min(400px, 100%); padding: 1.9rem; gap: 1rem; overflow: visible; border-radius: 1.5rem; box-shadow: 0 30px 80px -30px rgba(0, 0, 0, 0.8); animation: entrar 0.8s var(--curva) both 0.1s; }
+        .login-marca .orbe-mini { background: var(--noche); }
+        :root[data-tema="oscuro"] .login-marca .orbe-mini { background: var(--menta); }
         .login-marca { display: flex; align-items: center; gap: 0.75rem; }
         .login-marca .orbe-mini { width: 2.8rem; height: 2.8rem; }
         .login-marca b { display: block; font-size: 1.2rem; font-weight: 600; }
@@ -675,39 +987,113 @@
         .ayuda.info { color: var(--verde-texto); }
         .input[readonly] { color: var(--texto-suave); cursor: default; }
 
+        /* ---------- Animaciones del V22 ----------
+           1) Intro: pantalla verde noche con el logo brillando; el logo viaja a la esquina del riel y desde ahí un
+              círculo crece y descubre el panel (clip-path sobre #app).
+           2) Entrada de cada página: las tarjetas suben con desenfoque, en cascada; los títulos aparecen letra por letra;
+              las cifras giran como un contador y las barras crecen.
+           3) Cambio de pestaña: la página actual se desvanece con desenfoque y entra la nueva. */
+        @property --p { syntax: '<number>'; inherits: false; initial-value: 0; }
+        #intro { display: none; }
+        html.con-intro #intro {
+            display: block; position: fixed; inset: 0; z-index: 60; overflow: hidden; cursor: pointer;
+            background: radial-gradient(34rem 26rem at 50% 58%, rgba(31, 92, 78, 0.5), transparent 70%), linear-gradient(180deg, #071617, #050e0f);
+            animation: introSeguroFuera 0.4s ease 7s forwards; /* por si el script fallara: nunca se queda tapando el panel */
+        }
+        html.con-intro #app { clip-path: circle(0 at 2.9rem 2.2rem); animation: introSeguro 0.01s linear 7s forwards; }
+        html.con-intro #app { position: relative; z-index: 61; background: var(--fondo-degradado), var(--fondo); background-attachment: fixed; min-height: 100svh; }
+        .intro-logo { opacity: 0; }
+        @keyframes introSeguro { to { clip-path: circle(150% at 2.9rem 2.2rem); } }
+        @keyframes introSeguroFuera { to { opacity: 0; visibility: hidden; } }
+        .intro-anillos { position: absolute; left: 50%; top: 58%; width: 0; height: 0; }
+        .intro-anillos i {
+            position: absolute; left: 50%; top: 50%; border-radius: 50%; border: 1px solid rgba(134, 220, 188, 0.07);
+            transform: translate(-50%, -50%) scale(0.6); opacity: 0; animation: anillo 2.2s var(--curva) forwards;
+        }
+        .intro-anillos i:nth-child(1) { width: 22rem; height: 22rem; }
+        .intro-anillos i:nth-child(2) { width: 38rem; height: 38rem; animation-delay: 0.12s; }
+        .intro-anillos i:nth-child(3) { width: 56rem; height: 56rem; animation-delay: 0.24s; }
+        @keyframes anillo { to { transform: translate(-50%, -50%) scale(1); opacity: 1; } }
+        .intro-logo {
+            position: absolute; left: 0; top: 0; width: 3.4rem; height: 3.4rem; will-change: transform, opacity;
+            filter: drop-shadow(0 0 10px rgba(160, 240, 210, 0.75)) drop-shadow(0 0 26px rgba(134, 220, 188, 0.4));
+        }
+        .intro-logo .orbe-mini { display: block; width: 100%; height: 100%; background: #e9fbf3; animation: none; }
+        .intro-polvo { position: absolute; width: 3px; height: 3px; border-radius: 50%; background: rgba(200, 241, 225, 0.55); animation: polvo 3s ease-in-out infinite alternate; }
+        @keyframes polvo { from { transform: translateY(0); opacity: 0.15; } to { transform: translateY(-14px); opacity: 0.7; } }
+
+        @keyframes entrar { from { opacity: 0; transform: translateY(16px) scale(0.985); filter: blur(7px); } to { opacity: 1; transform: none; filter: none; } }
+        @keyframes letra { from { opacity: 0; transform: translateY(0.28em); filter: blur(7px); } to { opacity: 1; transform: none; filter: none; } }
+        @keyframes pop { from { opacity: 0; transform: scale(0.4); } 60% { opacity: 1; transform: scale(1.08); } to { transform: scale(1); } }
+        .entra { animation: entrar 0.75s var(--curva) both; animation-delay: var(--retraso, 0ms); }
+        .letra { display: inline-block; white-space: pre; animation: letra 0.6s var(--curva) both; animation-delay: calc(var(--base, 0ms) + var(--i) * 22ms); }
+        .entra .avatar, .entra .pila-ir { animation: pop 0.55s var(--resorte) both; animation-delay: calc(var(--retraso, 0ms) + 380ms + var(--n, 0) * 90ms); }
+        .entra .miembro { animation: entrar 0.6s var(--curva) both; animation-delay: calc(var(--retraso, 0ms) + 200ms + var(--n, 0) * 80ms); }
+        .entra .semana-dia { animation: entrar 0.55s var(--curva) both; animation-delay: calc(var(--retraso, 0ms) + 150ms + var(--n, 0) * 45ms); }
+        .entra .btn-naranja { animation: pop 0.6s var(--resorte) both; animation-delay: calc(var(--retraso, 0ms) + 700ms); }
+        .saliendo { opacity: 0 !important; filter: blur(8px); transform: scale(0.985); transition: opacity 0.28s ease, filter 0.28s ease, transform 0.28s ease; pointer-events: none; }
+        .apartado.entra, .pagina-grid > .entra { animation-duration: 0.55s; }
+        .dialogo[open], #visor[open] { animation: entrar 0.4s var(--curva); }
+        @media (prefers-reduced-motion: reduce) {
+            .entra, .letra { animation: none !important; }
+            .saliendo { transition: none; }
+            .riel-indicador, .od-tira, .columna i, .reparto-col i { transition: none !important; }
+        }
+
         /* ---------- Responsivo ---------- */
-        /* Calendario angosto: puntos en vez de títulos */
-        @media (max-width: 1100px) and (min-width: 901px) {
+        /* Calendario angosto (según el ancho de su tarjeta): puntos en vez de títulos */
+        #calendarPanel { container-type: inline-size; }
+        @container (max-width: 560px) {
             .cal-evento, .cal-mas { display: none; }
             .cal-puntos { display: flex; }
+            .leyenda { display: none; }
         }
-        /* Portátiles: la columna de agenda y avisos baja debajo del calendario */
-        @media (max-width: 1280px) and (min-width: 901px) {
-            #panel { grid-template-columns: minmax(320px, 1fr) minmax(0, 1.6fr); grid-template-rows: minmax(0, 1.5fr) minmax(0, 1fr); }
-            #chatPanel { grid-row: 1 / span 2; }
-            #lateral { grid-template-rows: none; grid-template-columns: 1fr 1fr; }
-            #fechaHoy { display: none; }
-            #empresa, #inventario { grid-template-columns: 220px minmax(0, 1fr); }
+        /* Portátiles: columna derecha más angosta */
+        @media (max-width: 1360px) and (min-width: 1181px) {
+            #panel { grid-template-columns: minmax(0, 1fr) 18.5rem; }
+            #proximosContador { white-space: nowrap; }
+            .hero-sub { max-width: 28rem; }
+        }
+        /* Portátiles chicos: la columna derecha (semana, próximos, avisos) baja debajo, en tres columnas */
+        @media (max-width: 1180px) and (min-width: 901px) {
+            #panel { grid-template-columns: minmax(0, 1fr); grid-template-rows: max-content max-content; }
+            .centro { grid-template-rows: max-content max-content minmax(26rem, calc(100dvh - 2rem)); }
+            #lateral { grid-template-rows: 22rem; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: stretch; }
+            #semanaPanel { background: var(--superficie); border: 1px solid var(--borde); border-radius: var(--radio); box-shadow: var(--sombra); padding: 0.9rem; }
+            .pagina-grid { grid-template-columns: 220px minmax(0, 1fr); }
             .asistente-layout { grid-template-columns: minmax(0, 1fr) 260px; }
+            .perfil-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         }
-        /* Tablet y móvil: todo se apila y la página hace scroll */
+        @media (max-width: 1060px) and (min-width: 901px) {
+            .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .stat-sabe { grid-column: 1 / -1; }
+        }
+        /* Tablet y móvil: el riel pasa a ser una barra arriba, todo se apila y la página hace scroll */
         @media (max-width: 900px) {
             body { overflow: auto; height: auto; min-height: 100svh; }
-            .barra { grid-template-columns: 1fr auto; }
-            #tabs { grid-column: 1 / -1; grid-row: 2; justify-self: stretch; }
-            .tab { flex: 1; justify-content: center; padding: 0.5rem 0.5rem; }
-            #fechaHoy { display: none; }
-            main { padding: 0 0.75rem 0.75rem; }
-            #panel, #empresa, #inventario { display: flex; flex-direction: column; }
-            #lateral { display: flex; flex-direction: column; }
+            #app { flex-direction: column; padding: 0.6rem 0.75rem 0.9rem; gap: 0.85rem; }
+            .riel { width: auto; flex-direction: row; padding: 0.4rem 0.55rem; gap: 0.6rem; position: sticky; top: 0.5rem; z-index: 25; }
+            .riel-logo { width: 2.4rem; height: 2.4rem; }
+            #tabs { flex-direction: row; justify-content: center; padding-top: 0; gap: 0.4rem; }
+            .riel-indicador::after, .tab-label, .riel-btn .tab-label { display: none; }
+            .riel-pie { flex-direction: row; gap: 0.2rem; }
+            .riel-estado { margin: 0 0.3rem 0 0; }
+            main { padding: 0; }
+            #panel, .pagina { display: flex; flex-direction: column; margin: 0; padding: 0; overflow: visible; }
+            .centro, .trabajo, #lateral, .pagina-grid { display: flex; flex-direction: column; height: auto; }
+            .hero { flex-direction: column; align-items: flex-start; padding: 1.25rem; }
+            .hero-lado { flex-direction: row; align-items: center; justify-content: space-between; width: 100%; }
+            .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .stat-sabe { grid-column: 1 / -1; }
+            #semanaPanel { padding: 0.2rem 0.1rem; }
             #chatPanel { height: 75vh; }
             #calendarPanel { height: 78vh; }
             #proximosPanel { max-height: 50vh; }
             #notifPanel { max-height: 50vh; }
+            .perfil-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
             #empresaNav, #inventarioNav { flex-direction: row; overflow-x: auto; padding: 0.4rem; flex-shrink: 0; }
             .subnav-titulo, .subnav-item small, .resumen { display: none; }
             .subnav-item { width: auto; flex-shrink: 0; padding: 0.45rem 0.7rem; }
-            .subnav-item.activa::before { display: none; }
             .apartado { min-height: 80vh; }
             .asistente-layout { grid-template-columns: 1fr; }
             .vista-previa { position: static; }
@@ -721,7 +1107,6 @@
             #calForm { width: 100%; }
             #calNuevoTitulo { flex: 1; width: auto; }
             .campos-2 { grid-template-columns: 1fr; }
-            .leyenda { display: none; }
             .metodos { grid-template-columns: 1fr; }
             .inv-herramientas { width: 100%; }
             .inv-herramientas .buscador { flex: 1; }
@@ -743,8 +1128,14 @@
             .dialogo .form-pie button { padding: 0.6rem 1rem; text-align: center; }
         }
         @media (max-width: 520px) {
-            .tab svg { display: none; }
-            #estadoServidor .texto-pill { display: none; }
+            .riel { gap: 0.3rem; padding: 0.35rem 0.4rem; }
+            #tabs { gap: 0.15rem; }
+            .riel-logo { display: none; }
+            .stats, .perfil-stats { grid-template-columns: minmax(0, 1fr); }
+            .miembros { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+            .miembro-foto { width: 2.9rem; height: 2.9rem; }
+            .hero-titulo { font-size: 1.5rem; }
+            .perfil-cuerpo { padding: 0 1rem 1rem; }
             .cal-evento, .cal-mas { display: none; }
             .cal-puntos { display: flex; }
             #calGrid { padding: 0.4rem; gap: 3px; }
@@ -778,58 +1169,140 @@
         </form>
     </div>
 
-    <!-- ================= BARRA SUPERIOR ================= -->
-    <header class="barra">
-        <div class="marca">
-            <div id="orbeHeader" class="orbe-mini"></div>
-            <div class="min-w-0">
-                <div class="marca-nombre" data-nombre-ia>ANA</div>
-                <div id="empresaHeader" class="marca-sub truncate">Asistente de tu empresa</div>
-            </div>
-        </div>
+    <!-- ================= INTRO (logo y círculo que descubre el panel) ================= -->
+    <div id="intro" aria-hidden="true" title="Toca para saltar">
+        <div class="intro-anillos"><i></i><i></i><i></i></div>
+        <div class="intro-logo"><span class="orbe-mini"></span></div>
+    </div>
+
+    <div id="app">
+    <!-- ================= RIEL LATERAL (navegación) ================= -->
+    <aside class="riel" aria-label="Navegación">
+        <div class="riel-logo" title="ANA"><div id="orbeHeader" class="orbe-mini"></div></div>
         <nav id="tabs" role="tablist" aria-label="Secciones">
-            <button class="tab activa" role="tab" data-tab="principal" aria-selected="true">
+            <span class="riel-indicador" aria-hidden="true"></span>
+            <button class="tab activa" role="tab" data-tab="principal" aria-selected="true" aria-label="Principal">
                 <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 5a1 1 0 011-1h5v7H4V5zm0 9h6v6H5a1 1 0 01-1-1v-5zm10-10h5a1 1 0 011 1v4h-6V4zm0 8h6v7a1 1 0 01-1 1h-5v-8z"/></svg>
-                Principal
+                <span class="tab-label">Principal</span>
             </button>
-            <button class="tab" role="tab" data-tab="empresa" aria-selected="false">
+            <button class="tab" role="tab" data-tab="empresa" aria-selected="false" aria-label="Empresa">
                 <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 21h18M5 21V5a1 1 0 011-1h8a1 1 0 011 1v16M15 9h3a1 1 0 011 1v11M9 8h2m-2 4h2m-2 4h2"/></svg>
-                Empresa
+                <span class="tab-label">Empresa</span>
             </button>
-            <button class="tab" role="tab" data-tab="inventario" aria-selected="false">
+            <button class="tab" role="tab" data-tab="inventario" aria-selected="false" aria-label="Inventario">
                 <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
-                Inventario
+                <span class="tab-label">Inventario</span>
             </button>
-            <button class="tab" role="tab" data-tab="conexiones" aria-selected="false">
+            <button class="tab" role="tab" data-tab="conexiones" aria-selected="false" aria-label="Conexiones">
                 <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.8 10.2a4 4 0 010 5.6l-2 2a4 4 0 01-5.6-5.6l1-1m3-3l1-1a4 4 0 015.6 5.6l-1 1"/></svg>
-                Conexiones
+                <span class="tab-label">Conexiones</span>
                 <span id="tabConexionesBadge" class="tab-badge hidden">0</span>
             </button>
         </nav>
-        <div class="barra-derecha">
-            <span id="fechaHoy"></span>
-            <span id="estadoServidor" class="pill off" role="status" title="Estado de la conexión con el servidor">
-                <span class="punto"></span><span class="texto-pill">Conectando…</span>
-            </span>
-            <button id="temaToggle" class="btn-icon" type="button" title="Cambiar entre tema claro y oscuro">
+        <div class="riel-pie">
+            <span id="estadoRiel" class="riel-estado" title="Conectando con el servidor…"></span>
+            <button id="temaToggle" class="riel-btn" type="button" aria-label="Cambiar entre tema claro y oscuro">
                 <svg id="iconoLuna" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20 14.5A8 8 0 019.5 4a8 8 0 1010.5 10.5z"/></svg>
                 <svg id="iconoSol" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path stroke-linecap="round" d="M12 2v2m0 16v2M4.9 4.9l1.4 1.4m11.4 11.4l1.4 1.4M2 12h2m16 0h2M4.9 19.1l1.4-1.4m11.4-11.4l1.4-1.4"/></svg>
+                <span class="tab-label">Tema claro / oscuro</span>
             </button>
-            <button id="cerrarSesion" class="btn-icon hidden" type="button" title="Cerrar sesión">
+            <button id="cerrarSesion" class="riel-btn hidden" type="button" aria-label="Cerrar sesión">
                 <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 16l4-4m0 0l-4-4m4 4H9m4 4v1a2 2 0 01-2 2H6a2 2 0 01-2-2V7a2 2 0 012-2h5a2 2 0 012 2v1"/></svg>
+                <span class="tab-label">Cerrar sesión</span>
             </button>
         </div>
-    </header>
+    </aside>
 
     <!-- ================= PRINCIPAL ================= -->
     <main id="panel">
+      <div class="centro">
 
+        <!-- Bienvenida ("Work's always better together") -->
+        <section id="heroPanel" class="hero" data-anim>
+            <div class="hero-texto">
+                <div class="hero-eyebrow"><span id="empresaHeader">Asistente de tu empresa</span><span class="sep">•</span><span id="fechaHoy"></span></div>
+                <h1 class="hero-titulo" data-letras>Tu empresa trabaja <em>mejor</em> con <span data-nombre-ia>ANA</span></h1>
+                <p class="hero-sub"><span data-nombre-ia>ANA</span> atiende a tus clientes, agenda lo importante y te avisa a tiempo. Aquí ves de un vistazo lo que pasa en tu empresa.</p>
+                <div class="hero-acciones">
+                    <button type="button" id="heroHablar" class="btn-naranja">
+                        <span class="icono"><svg fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 10h8M8 14h5m-9 7l3.5-3.5H18a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v15z"/></svg></span>
+                        <span>Hablar con <span data-nombre-ia>ANA</span></span>
+                    </button>
+                </div>
+            </div>
+            <div class="hero-lado">
+                <div class="pila">
+                    <button type="button" class="pila-ir" data-ir-tab="conexiones" title="Ver conexiones" style="--n:0"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14m-6-6l6 6-6 6"/></svg></button>
+                    <span class="avatar av-menta" style="--n:1" title="Asistente"><span class="orbe-mini"></span></span>
+                    <span class="avatar av-crema" style="--n:2" title="Chat"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 10h8M8 14h5m-9 7l3.5-3.5H18a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v15z"/></svg></span>
+                    <span class="avatar av-durazno" style="--n:3" title="Calendario"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 3v3m8-3v3M4 9h16M5 5h14a1 1 0 011 1v13a1 1 0 01-1 1H5a1 1 0 01-1-1V6a1 1 0 011-1z"/></svg></span>
+                    <span class="avatar av-ig" style="--n:4" title="Instagram"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg></span>
+                </div>
+                <span id="estadoServidor" class="pill off" role="status" title="Estado de la conexión con el servidor">
+                    <span class="punto"></span><span class="texto-pill">Conectando…</span>
+                </span>
+            </div>
+        </section>
+
+        <!-- Cifras ("Members" | "Data" | "Impact") -->
+        <div class="stats">
+            <section class="card stat stat-sabe" data-anim>
+                <div class="stat-head">
+                    <div class="stat-titulo"><span>Lo que sabe <span data-nombre-ia>ANA</span></span> <span id="sabeChip" class="chip-menta">0/4</span></div>
+                    <button type="button" class="btn-mini" data-ir-tab="empresa" title="Abrir la pestaña Empresa"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.3 4.3a1.7 1.7 0 013.4 0 1.7 1.7 0 002.6 1.1 1.7 1.7 0 012.4 2.4 1.7 1.7 0 001 2.5 1.7 1.7 0 010 3.4 1.7 1.7 0 00-1 2.6 1.7 1.7 0 01-2.4 2.4 1.7 1.7 0 00-2.6 1 1.7 1.7 0 01-3.4 0 1.7 1.7 0 00-2.6-1 1.7 1.7 0 01-2.4-2.4 1.7 1.7 0 00-1-2.6 1.7 1.7 0 010-3.4 1.7 1.7 0 001-2.5 1.7 1.7 0 012.4-2.4 1.7 1.7 0 002.6-1.1z"/><circle cx="12" cy="12" r="3"/></svg></button>
+                </div>
+                <div class="miembros">
+                    <button type="button" class="miembro" data-ir-tab="empresa" data-ir-apartado-tab="perfil" style="--n:0">
+                        <span class="miembro-foto" id="sabePerfil"><i class="av-menta"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 21h18M5 21V5a1 1 0 011-1h8a1 1 0 011 1v16M15 9h3a1 1 0 011 1v11M9 8h2m-2 4h2m-2 4h2"/></svg></i><span class="ok"></span></span>
+                        <b>Perfil</b><span class="odo" data-odo="sabePerfilNum">0%</span>
+                    </button>
+                    <button type="button" class="miembro" data-ir-tab="empresa" data-ir-apartado-tab="biblioteca" style="--n:1">
+                        <span class="miembro-foto" id="sabeDocs"><i class="av-crema"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6M7 3h7l5 5v12a1 1 0 01-1 1H7a1 1 0 01-1-1V4a1 1 0 011-1z"/></svg></i><span class="ok"></span></span>
+                        <b>Documentos</b><span class="odo" data-odo="sabeDocsNum">0</span>
+                    </button>
+                    <button type="button" class="miembro" data-ir-tab="empresa" data-ir-apartado-tab="biblioteca" style="--n:2">
+                        <span class="miembro-foto" id="sabeImgs"><i class="av-durazno"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.6-4.6a2 2 0 012.8 0L16 16m-2-2l1.6-1.6a2 2 0 012.8 0L20 14M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2zM14 8h.01"/></svg></i><span class="ok"></span></span>
+                        <b>Imágenes</b><span class="odo" data-odo="sabeImgsNum">0</span>
+                    </button>
+                    <button type="button" class="miembro" data-ir-tab="inventario" style="--n:3">
+                        <span class="miembro-foto" id="sabeProd"><i class="av-crema"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg></i><span class="ok"></span></span>
+                        <b>Productos</b><span class="odo" data-odo="sabeProdNum">0</span>
+                    </button>
+                </div>
+            </section>
+
+            <section class="card stat stat-agenda" data-anim>
+                <div class="stat-head">
+                    <span class="stat-etiqueta">Agenda · próximos eventos</span>
+                    <button type="button" class="btn-mini" id="irCalendario" title="Ir al calendario"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14m-6-6l6 6-6 6"/></svg></button>
+                </div>
+                <div class="cifra"><span class="odo" data-odo="agendaNum">00</span><small id="agendaUnidad">eventos</small></div>
+                <div class="reparto">
+                    <div class="reparto-col c-verde" id="repSemana"><span title="Esta semana">Semana</span><i></i><small>0%</small></div>
+                    <div class="reparto-col c-menta" id="repMes"><span title="Lo que queda del mes">Este mes</span><i></i><small>0%</small></div>
+                    <div class="reparto-col c-durazno" id="repDespues"><span title="Meses siguientes">Después</span><i></i><small>0%</small></div>
+                </div>
+            </section>
+
+            <section class="card stat stat-semana" data-anim>
+                <div class="stat-head">
+                    <div class="seg-tabs" role="tablist" aria-label="Qué mostrar en la semana">
+                        <button type="button" class="activa" data-serie="eventos">Eventos</button>
+                        <button type="button" data-serie="avisos">Avisos</button>
+                    </div>
+                    <span class="stat-etiqueta" id="semanaTotal"></span>
+                </div>
+                <div class="columnas" id="columnasSemana"></div>
+            </section>
+        </div>
+
+        <div class="trabajo">
         <!-- Chat -->
-        <section id="chatPanel" class="card">
+        <section id="chatPanel" class="card" data-anim>
             <div class="card-head">
                 <div class="card-title">
                     <span class="card-icono"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 10h8M8 14h5m-9 7l3.5-3.5H18a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v15z"/></svg></span>
-                    Chat con <span data-nombre-ia>ANA</span>
+                    <span>Chat con <span data-nombre-ia>ANA</span></span>
                 </div>
                 <div class="flex items-center gap-1">
                     <button id="vozToggle" class="btn-icon" title="Activar o silenciar la voz de ANA">
@@ -856,7 +1329,7 @@
         </section>
 
         <!-- Calendario -->
-        <section id="calendarPanel" class="card">
+        <section id="calendarPanel" class="card" data-anim>
             <div class="card-head">
                 <div class="card-title">
                     <span class="card-icono"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 3v3m8-3v3M4 9h16M5 5h14a1 1 0 011 1v13a1 1 0 01-1 1H5a1 1 0 01-1-1V6a1 1 0 011-1z"/></svg></span>
@@ -885,9 +1358,23 @@
             </div>
         </section>
 
-        <!-- Agenda y avisos -->
+        </div>
+      </div>
+
+        <!-- Columna derecha: mes y semana ("November, 2026"), próximos eventos y notificaciones -->
         <div id="lateral">
-            <section id="proximosPanel" class="card">
+            <section id="semanaPanel" data-anim aria-label="Semana actual">
+                <div class="semana-head">
+                    <span id="semanaTitulo"></span>
+                    <div class="flechas">
+                        <button type="button" id="semanaPrev" class="btn-icon" title="Semana anterior"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg></button>
+                        <button type="button" id="semanaNext" class="btn-icon" title="Semana siguiente"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg></button>
+                    </div>
+                </div>
+                <div class="semana" id="semanaDias"></div>
+            </section>
+
+            <section id="proximosPanel" class="card" data-anim>
                 <div class="card-head">
                     <div class="card-title">
                         <span class="card-icono"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l2.5 2.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></span>
@@ -898,7 +1385,7 @@
                 <div id="proximosLista" class="card-body"></div>
             </section>
 
-            <section id="notifPanel" class="card">
+            <section id="notifPanel" class="card" data-anim>
                 <div class="card-head">
                     <div class="card-title">
                         <span class="card-icono"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.4-1.4A2 2 0 0118 14.2V11a6 6 0 00-4-5.7V5a2 2 0 10-4 0v.3A6 6 0 006 11v3.2a2 2 0 01-.6 1.4L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg></span>
@@ -913,10 +1400,55 @@
     </main>
 
     <!-- ================= EMPRESA ================= -->
-    <main id="empresa" class="hidden">
+    <main id="empresa" class="hidden pagina">
 
+        <!-- Perfil de la empresa (como el perfil "Hannah Brooks" del V22) -->
+        <section class="card perfil-tarjeta" data-anim>
+            <div class="perfil-portada"></div>
+            <div class="perfil-cuerpo">
+                <div class="perfil-avatar" id="perfilAvatar"><span class="orbe-mini"></span></div>
+                <div class="perfil-datos">
+                    <h1 class="perfil-nombre" id="perfilNombre" data-letras>Tu empresa</h1>
+                    <div class="perfil-rol" id="perfilRol">Completa los datos para que <span data-nombre-ia>ANA</span> la conozca</div>
+                    <div class="perfil-meta">
+                        <span id="perfilUbicacion" class="hidden"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 21s-7-6.2-7-11.5A7 7 0 0112 2.5a7 7 0 017 7C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg><b></b></span>
+                        <span id="perfilContacto" class="hidden"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16v12H4zM4 7l8 6 8-6"/></svg><b></b></span>
+                        <span id="perfilHorario" class="hidden"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l2.5 2.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg><b></b></span>
+                    </div>
+                </div>
+                <div class="perfil-acciones">
+                    <span id="perfilEstado" class="pill off"><span class="punto"></span><span>Sin guardar</span></span>
+                    <button type="button" class="btn-verde" data-ir-apartado="perfil">✎ Editar perfil</button>
+                </div>
+            </div>
+        </section>
+
+        <div class="perfil-stats">
+            <section class="card stat-perfil" data-anim>
+                <span class="stat-etiqueta"><span class="icono-cuadro"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 21h18M5 21V5a1 1 0 011-1h8a1 1 0 011 1v16M15 9h3a1 1 0 011 1v11M9 8h2m-2 4h2m-2 4h2"/></svg></span>Perfil completo</span>
+                <div class="cifra"><span class="odo" data-odo="perfilPct">0%</span></div>
+                <span class="pie" id="perfilPctPie">de los datos de la empresa</span>
+            </section>
+            <section class="card stat-perfil" data-anim>
+                <span class="stat-etiqueta"><span class="icono-cuadro"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6M7 3h7l5 5v12a1 1 0 01-1 1H7a1 1 0 01-1-1V4a1 1 0 011-1z"/></svg></span>Documentos</span>
+                <div class="cifra"><span class="odo" data-odo="perfilDocs">0</span></div>
+                <span class="pie" id="perfilDocsPie">para que los estudie</span>
+            </section>
+            <section class="card stat-perfil" data-anim>
+                <span class="stat-etiqueta"><span class="icono-cuadro"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg></span>Productos</span>
+                <div class="cifra"><span class="odo" data-odo="perfilProd">0</span></div>
+                <span class="pie" id="perfilProdPie">en el inventario</span>
+            </section>
+            <section class="card stat-perfil" data-anim>
+                <span class="stat-etiqueta"><span class="icono-cuadro"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 3v3m8-3v3M4 9h16M5 5h14a1 1 0 011 1v13a1 1 0 01-1 1H5a1 1 0 01-1-1V6a1 1 0 011-1z"/></svg></span>Eventos</span>
+                <div class="cifra"><span class="odo" data-odo="perfilEventos">0</span></div>
+                <span class="pie" id="perfilEventosPie">en el calendario</span>
+            </section>
+        </div>
+
+        <div class="pagina-grid">
         <!-- Menú de apartados -->
-        <nav id="empresaNav" class="card" aria-label="Apartados de la empresa">
+        <nav id="empresaNav" class="card" aria-label="Apartados de la empresa" data-anim>
             <div class="subnav-titulo">Configuración</div>
             <button type="button" class="subnav-item activa" data-apartado="perfil">
                 <span class="card-icono"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 21h18M5 21V5a1 1 0 011-1h8a1 1 0 011 1v16M15 9h3a1 1 0 011 1v11M9 8h2m-2 4h2m-2 4h2"/></svg></span>
@@ -1229,13 +1761,28 @@
             <img id="visorImg" alt="">
             <div class="visor-pie"><span id="visorNombre" class="truncate"></span><button type="button" id="visorCerrar">Cerrar</button></div>
         </dialog>
+        </div>
     </main>
 
     <!-- ================= INVENTARIO ================= -->
-    <main id="inventario" class="hidden">
+    <main id="inventario" class="hidden pagina">
 
+        <!-- Título de página (como "Saved for later" del V22) -->
+        <header class="pagina-cabecera" data-anim>
+            <div>
+                <h1 class="pagina-titulo" data-letras>Inventario</h1>
+                <p class="pagina-sub">Lo que <span data-nombre-ia>ANA</span> ofrece y consulta cuando un cliente pregunta por un producto.</p>
+            </div>
+            <div class="filtros" role="tablist" aria-label="Formas de armar el inventario" id="invFiltros">
+                <button type="button" class="activa" data-inv-vista="productos">Productos</button>
+                <button type="button" data-inv-vista="conectar">Conectar</button>
+                <button type="button" data-inv-vista="archivo">Archivo</button>
+            </div>
+        </header>
+
+        <div class="pagina-grid">
         <!-- Menú: las tres formas de armar el inventario -->
-        <nav id="inventarioNav" class="card" aria-label="Formas de armar el inventario">
+        <nav id="inventarioNav" class="card" aria-label="Formas de armar el inventario" data-anim>
             <div class="subnav-titulo">Inventario</div>
             <button type="button" class="subnav-item activa" data-inv-vista="productos">
                 <span class="card-icono"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg></span>
@@ -1440,13 +1987,21 @@
                 </div>
             </form>
         </dialog>
+        </div>
     </main>
 
     <!-- ================= CONEXIONES ================= -->
-    <main id="conexiones" class="hidden">
+    <main id="conexiones" class="hidden pagina">
+
+        <header class="pagina-cabecera" data-anim>
+            <div>
+                <h1 class="pagina-titulo" data-letras>Conexiones</h1>
+                <p class="pagina-sub">Los canales donde <span data-nombre-ia>ANA</span> conversa con tus clientes, con su actividad en tiempo real.</p>
+            </div>
+        </header>
 
         <!-- Instagram -->
-            <section class="card" id="canal-instagram" style="flex-shrink: 0;">
+            <section class="card" id="canal-instagram" style="flex-shrink: 0;" data-anim>
                 <div class="card-head">
                     <div class="card-title">
                         <span class="logo-canal logo-ig"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg></span>
@@ -1483,6 +2038,7 @@
                 </div>
             </section>
     </main>
+    </div><!-- /#app -->
 
     <script>
         // ==========================================
@@ -1707,6 +2263,9 @@
         function marcarServidor(ok) {
             estadoServidor.className = `pill ${ok ? 'on' : 'err'}`;
             estadoServidor.querySelector('.texto-pill').textContent = ok ? 'Servidor conectado' : 'Servidor sin conexión';
+            // El punto del riel muestra lo mismo en todas las pestañas
+            $('estadoRiel').className = `riel-estado ${ok ? 'on' : 'err'}`;
+            $('estadoRiel').title = ok ? 'Servidor conectado' : 'Servidor sin conexión';
         }
 
         // ==========================================
@@ -1738,6 +2297,7 @@
         }
 
         function renderNotificaciones() {
+            programarTablero();
             if (!notificaciones.length) {
                 notifLista.innerHTML = '<div class="vacio">Sin notificaciones por ahora.</div>';
                 notifContador.classList.add('hidden');
@@ -1796,6 +2356,7 @@
         }
 
         function renderCalendario() {
+            programarTablero();
             const y = mesVisible.getFullYear(), m = mesVisible.getMonth();
             calTitulo.textContent = `${MESES[m]} ${y}`;
 
@@ -2025,9 +2586,11 @@
         function mostrarApartado(nombre) {
             if (!APARTADOS.includes(nombre)) nombre = 'perfil';
             apartadoActivo = nombre;
+            const cambia = $(`apartado-${nombre}`).classList.contains('hidden');
             APARTADOS.forEach((a) => $(`apartado-${a}`).classList.toggle('hidden', a !== nombre));
             document.querySelectorAll('#empresaNav .subnav-item').forEach((b) => b.classList.toggle('activa', b.dataset.apartado === nombre));
             guardar('ana_empresa_apartado', nombre);
+            if (cambia) animarPieza($(`apartado-${nombre}`));
         }
         $('empresaNav').addEventListener('click', (e) => {
             const btn = e.target.closest('[data-apartado]');
@@ -2063,6 +2626,7 @@
 
         // Pie del formulario: si los datos llegaron al servidor o solo están en este navegador
         function renderEstadoEmpresa(texto) {
+            programarTablero();
             const estado = $('empresaEstado');
             if (!document.querySelector('[data-pendiente="perfil"]').classList.contains('hidden')) return; // hay cambios sin guardar
             const sinEnviar = !!empresa.actualizado && !empresa.enServidor;
@@ -2528,6 +3092,7 @@
         }
 
         function renderResumen() {
+            programarTablero();
             const campos = Object.keys(camposEmpresa);
             const llenos = campos.filter((k) => empresa[k]).length;
             const pct = Math.round((llenos / campos.length) * 100);
@@ -3347,10 +3912,16 @@
         function mostrarVistaInv(nombre) {
             if (!VISTAS_INV.includes(nombre)) nombre = 'productos';
             vistaInv = nombre;
+            const cambia = $(`inv-${nombre}`).classList.contains('hidden');
             VISTAS_INV.forEach((v) => $(`inv-${v}`).classList.toggle('hidden', v !== nombre));
-            document.querySelectorAll('#inventarioNav .subnav-item').forEach((b) => b.classList.toggle('activa', b.dataset.invVista === nombre));
+            document.querySelectorAll('#inventarioNav .subnav-item, #invFiltros button').forEach((b) => b.classList.toggle('activa', b.dataset.invVista === nombre));
             guardar('ana_inv_vista', nombre);
+            if (cambia) animarPieza($(`inv-${nombre}`));
         }
+        $('invFiltros').addEventListener('click', (e) => {
+            const btn = e.target.closest('[data-inv-vista]');
+            if (btn) mostrarVistaInv(btn.dataset.invVista);
+        });
         $('inventarioNav').addEventListener('click', (e) => {
             const btn = e.target.closest('[data-inv-vista]');
             if (btn) mostrarVistaInv(btn.dataset.invVista);
@@ -3418,6 +3989,7 @@
         }
 
         function renderResumenInventario() {
+            programarTablero();
             const lista = inventario.productos;
             $('invResProductos').textContent = lista.length;
             $('invResCategorias').textContent = new Set(lista.map((p) => p.category).filter(Boolean)).size;
@@ -3775,13 +4347,16 @@
 
         function mostrarPestana(nombre) {
             if (!PESTANAS[nombre]) nombre = 'principal';
+            const anterior = pestanaActiva ? PESTANAS[pestanaActiva] : null;
+            const misma = pestanaActiva === nombre;
             pestanaActiva = nombre;
-            Object.entries(PESTANAS).forEach(([k, el]) => el.classList.toggle('hidden', k !== nombre));
             document.querySelectorAll('#tabs .tab').forEach((t) => {
                 const activa = t.dataset.tab === nombre;
                 t.classList.toggle('activa', activa);
                 t.setAttribute('aria-selected', activa ? 'true' : 'false');
             });
+            moverIndicador();
+            cambiarPagina(anterior, PESTANAS[nombre], misma); // la actual se desvanece y la nueva entra en cascada
             guardar('ana_pestana', nombre);
             if (location.hash !== `#${nombre}`) history.replaceState(null, '', `#${nombre}`);
             if (nombre === 'inventario') traerInventarioDelServidor();
@@ -4061,6 +4636,396 @@
         $('cerrarSesion').addEventListener('click', () => terminarSesion('Cerraste sesión.', true));
 
         // ==========================================
+        // TABLERO Y ANIMACIONES (diseño "Dashboard V22")
+        // Intro con el logo y el círculo, entrada en cascada de cada pestaña, títulos letra por letra,
+        // cifras que giran como un contador, barras que crecen y el indicador del riel que se desliza.
+        // ==========================================
+        // Con var: las funciones render*() pueden llamar a programarTablero() antes de que este bloque se ejecute.
+        var tableroListo = false;   // ya se pueden pintar las cifras
+        var panelListo = false;     // ya arrancó el panel: los cambios de pestaña y apartado se animan
+        var introCorriendo = false;
+        var tableroPendiente = false;
+        var cambioPagina = null;
+        var esperandoCifras = null;
+        const reducirMovimiento = () => !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+        const odo = (clave) => document.querySelector(`[data-odo="${clave}"]`);
+
+        // ---------- Cifras que giran (odómetro): cada dígito es una tira 0-9 0-9 que se desplaza ----------
+        const TIRA_DIGITOS = '01234567890123456789'.split('').map((d) => `<span>${d}</span>`).join('');
+        // cero = true: deja todos los dígitos en 0 (luego, al llamarla con el valor, giran hasta él)
+        function rodar(el, texto, cero = false) {
+            if (!el) return;
+            texto = String(texto);
+            const forma = texto.replace(/\d/g, '0');
+            let vis = el.querySelector('.od-vis');
+            if (!vis || el.dataset.forma !== forma || cero) {
+                el.innerHTML = `<span class="sr-only"></span><span class="od-vis" aria-hidden="true">${[...texto].map((c) => /\d/.test(c)
+                    ? `<span class="od-col"><span class="od-tira">${TIRA_DIGITOS}</span></span>`
+                    : `<span class="od-sig">${escaparHtml(c)}</span>`).join('')}</span>`;
+                vis = el.querySelector('.od-vis');
+                el.dataset.forma = forma;
+                void vis.offsetWidth; // fija el 0 de partida antes de girar
+            }
+            el.querySelector('.sr-only').textContent = texto;
+            if (cero) return;
+            const digitos = texto.replace(/\D/g, '');
+            const animar = !reducirMovimiento();
+            vis.querySelectorAll('.od-tira').forEach((tira, i) => {
+                tira.style.transition = animar ? `transform ${1.15 + i * 0.16}s cubic-bezier(0.16, 0.84, 0.24, 1) ${i * 70}ms` : 'none';
+                tira.style.transform = `translateY(-${(10 + Number(digitos[i])) * 5}%)`; // 20 dígitos: cada uno es el 5 % de la tira
+            });
+        }
+        const formatoNumero = (n) => Number(n || 0).toLocaleString('es-ES');
+
+        // Pone una propiedad en su valor inicial sin transición (para que luego crezca desde ahí)
+        function sinTransicion(el, aplicar) {
+            el.style.transition = 'none';
+            aplicar(el);
+            void el.offsetWidth;
+            el.style.transition = '';
+        }
+
+        // ---------- "Lo que sabe ANA": anillos de progreso ----------
+        function renderSabe(cero) {
+            const campos = Object.keys(camposEmpresa);
+            const pct = Math.round((campos.filter((k) => empresa[k]).length / campos.length) * 100);
+            const nImgs = documentos.filter(esImagen).length;
+            const nDocs = documentos.length - nImgs;
+            const nProd = inventario.productos.length;
+            const items = [
+                ['sabePerfil', pct, `${pct}%`, pct],
+                ['sabeDocs', nDocs, formatoNumero(nDocs), Math.min(100, nDocs * 20)],
+                ['sabeImgs', nImgs, formatoNumero(nImgs), Math.min(100, nImgs * 20)],
+                ['sabeProd', nProd, formatoNumero(nProd), Math.min(100, nProd * 5)]
+            ];
+            items.forEach(([id, valor, texto, anillo]) => {
+                const foto = $(id);
+                if (cero) sinTransicion(foto, (el) => el.style.setProperty('--p', 0));
+                else foto.style.setProperty('--p', anillo);
+                foto.classList.toggle('lleno', !cero && valor > 0);
+                rodar(odo(`${id}Num`), texto, cero);
+            });
+            $('sabeChip').textContent = `${items.filter(([, v]) => v > 0).length}/4`;
+        }
+
+        // ---------- "Agenda": próximos eventos repartidos en esta semana / este mes / después ----------
+        function renderAgenda(cero) {
+            const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+            const hoyClave = claveFecha(hoy);
+            const domingo = new Date(hoy); domingo.setDate(hoy.getDate() + (6 - ((hoy.getDay() + 6) % 7)));
+            const finSemana = claveFecha(domingo);
+            const finMes = claveFecha(new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0));
+            const proximos = eventos.filter((e) => e.fecha >= hoyClave);
+            const semana = proximos.filter((e) => e.fecha <= finSemana).length;
+            const mes = proximos.filter((e) => e.fecha > finSemana && e.fecha <= finMes).length;
+            const despues = proximos.length - semana - mes;
+            const total = proximos.length;
+            rodar(odo('agendaNum'), String(total).padStart(2, '0'), cero);
+            $('agendaUnidad').textContent = total === 1 ? 'evento' : 'eventos';
+            [['repSemana', semana], ['repMes', mes], ['repDespues', despues]].forEach(([id, n]) => {
+                const col = $(id), barra = col.querySelector('i');
+                col.style.setProperty('--peso', total ? Math.max(n, total * 0.18) : 1);
+                if (cero) sinTransicion(barra, (el) => { el.style.transform = 'scaleX(0)'; });
+                else barra.style.transform = `scaleX(${n ? 1 : 0.14})`;
+                col.querySelector('small').textContent = `${total ? Math.round((n / total) * 100) : 0}%`;
+            });
+        }
+
+        // ---------- "Esta semana": barras verticales por día (eventos o avisos) ----------
+        let serieSemana = cargar('ana_serie_semana', 'eventos');
+        const LETRAS_DIA = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
+        const columnasSemana = $('columnasSemana');
+        columnasSemana.innerHTML = LETRAS_DIA.map((l, i) => `<div class="columna" style="--n:${i}"><div class="pista"><i><span class="globo"></span></i></div><small>${l}</small></div>`).join('');
+        function lunesDe(fecha) {
+            const d = new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate());
+            d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+            return d;
+        }
+        function renderColumnas(cero) {
+            const lunes = lunesDe(new Date());
+            const hoyClave = claveFecha(new Date());
+            const claves = LETRAS_DIA.map((_, i) => claveFecha(new Date(lunes.getFullYear(), lunes.getMonth(), lunes.getDate() + i)));
+            const cuenta = claves.map((k) => serieSemana === 'avisos'
+                ? notificaciones.filter((n) => claveFecha(new Date(n.hora)) === k).length
+                : eventos.filter((e) => e.fecha === k).length);
+            const max = Math.max(...cuenta);
+            const total = cuenta.reduce((a, b) => a + b, 0);
+            $('semanaTotal').textContent = `${total} ${serieSemana === 'avisos' ? (total === 1 ? 'aviso' : 'avisos') : (total === 1 ? 'evento' : 'eventos')}`;
+            columnasSemana.querySelectorAll('.columna').forEach((col, i) => {
+                const barra = col.querySelector('i');
+                if (cero) sinTransicion(barra, (el) => { el.style.height = '0%'; });
+                else barra.style.height = `${max ? Math.max(8, (cuenta[i] / max) * 100) : 8}%`;
+                col.classList.toggle('alta', !cero && max > 0 && cuenta[i] === max);
+                col.classList.toggle('hoy', claves[i] === hoyClave);
+                col.title = `${DIAS[i]} ${fechaDesdeClave(claves[i]).getDate()}: ${cuenta[i]}`;
+                barra.querySelector('.globo').textContent = cuenta[i];
+            });
+        }
+        document.querySelector('.seg-tabs').addEventListener('click', (e) => {
+            const btn = e.target.closest('[data-serie]');
+            if (!btn || btn.dataset.serie === serieSemana) return;
+            serieSemana = btn.dataset.serie;
+            guardar('ana_serie_semana', serieSemana);
+            document.querySelectorAll('.seg-tabs button').forEach((b) => b.classList.toggle('activa', b === btn));
+            renderColumnas(true);
+            renderColumnas(false);
+        });
+        document.querySelectorAll('.seg-tabs button').forEach((b) => b.classList.toggle('activa', b.dataset.serie === serieSemana));
+
+        // ---------- Mes y semana ("November, 2026"): se elige un día y el calendario va a esa fecha ----------
+        let semanaVisible = lunesDe(new Date());
+        let ultimoSeleccionado = diaSeleccionado;
+        function renderSemana() {
+            if (ultimoSeleccionado !== diaSeleccionado) { // si se eligió otro día en el calendario, la semana lo sigue
+                ultimoSeleccionado = diaSeleccionado;
+                semanaVisible = lunesDe(fechaDesdeClave(diaSeleccionado));
+            }
+            const jueves = new Date(semanaVisible); jueves.setDate(jueves.getDate() + 3);
+            $('semanaTitulo').textContent = `${MESES[jueves.getMonth()]}, ${jueves.getFullYear()}`;
+            const hoyClave = claveFecha(new Date());
+            $('semanaDias').innerHTML = DIAS.map((nombre, i) => {
+                const d = new Date(semanaVisible.getFullYear(), semanaVisible.getMonth(), semanaVisible.getDate() + i);
+                const clave = claveFecha(d);
+                const clases = ['semana-dia'];
+                if (clave === hoyClave) clases.push('hoy');
+                if (clave === diaSeleccionado) clases.push('sel');
+                const n = eventosDe(clave).length;
+                return `<button type="button" class="${clases.join(' ')}" data-fecha="${clave}" style="--n:${i}" title="${escaparHtml(formatearFechaLarga(d))}${n ? ` · ${n} evento${n === 1 ? '' : 's'}` : ''}">
+                    <span>${nombre}</span><b>${d.getDate()}</b>${n ? '<span class="marca-ev"></span>' : ''}</button>`;
+            }).join('');
+        }
+        $('semanaDias').addEventListener('click', (e) => {
+            const dia = e.target.closest('[data-fecha]');
+            if (!dia) return;
+            ultimoSeleccionado = dia.dataset.fecha; // la semana no salta: ya está a la vista
+            irAFecha(dia.dataset.fecha);
+        });
+        $('semanaPrev').addEventListener('click', () => { semanaVisible.setDate(semanaVisible.getDate() - 7); renderSemana(); });
+        $('semanaNext').addEventListener('click', () => { semanaVisible.setDate(semanaVisible.getDate() + 7); renderSemana(); });
+
+        // ---------- Perfil de la empresa (cabecera de la pestaña Empresa) ----------
+        function renderPerfil(cero) {
+            const nombre = String(empresa.nombre || '').trim();
+            const titulo = nombre || 'Tu empresa';
+            const h = $('perfilNombre');
+            if (h.getAttribute('aria-label') !== titulo && h.textContent !== titulo) { h.textContent = titulo; h.removeAttribute('aria-label'); }
+            $('perfilRol').textContent = [empresa.sector, empresa.productos].filter(Boolean).join(' · ') || `Completa los datos para que ${nombreIA()} la conozca`;
+            [['perfilUbicacion', empresa.ubicacion], ['perfilContacto', empresa.contacto || empresa.web], ['perfilHorario', empresa.horario]].forEach(([id, valor]) => {
+                $(id).classList.toggle('hidden', !valor);
+                $(id).querySelector('b').textContent = valor || '';
+            });
+            const iniciales = nombre.split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0].toUpperCase()).join('');
+            $('perfilAvatar').innerHTML = iniciales ? escaparHtml(iniciales) : '<span class="orbe-mini"></span>';
+            const estado = $('perfilEstado');
+            const [clase, texto] = empresa.enServidor ? ['on', 'Guardado en el servidor'] : empresa.actualizado ? ['off', 'Solo en este navegador'] : ['off', 'Sin guardar todavía'];
+            estado.className = `pill ${clase}`;
+            estado.lastElementChild.textContent = texto;
+
+            const campos = Object.keys(camposEmpresa);
+            const llenos = campos.filter((k) => empresa[k]).length;
+            const nImgs = documentos.filter(esImagen).length;
+            const cats = new Set(inventario.productos.map((p) => p.category).filter(Boolean)).size;
+            const porAna = eventos.filter((e) => e.origen === 'ana').length;
+            rodar(odo('perfilPct'), `${Math.round((llenos / campos.length) * 100)}%`, cero);
+            rodar(odo('perfilDocs'), formatoNumero(documentos.length), cero);
+            rodar(odo('perfilProd'), formatoNumero(inventario.productos.length), cero);
+            rodar(odo('perfilEventos'), formatoNumero(eventos.length), cero);
+            $('perfilPctPie').textContent = `${llenos} de ${campos.length} datos completos`;
+            const nDocs = documentos.length - nImgs;
+            $('perfilDocsPie').textContent = `${nDocs} documento${nDocs === 1 ? '' : 's'} · ${nImgs} imagen${nImgs === 1 ? '' : 'es'}`;
+            $('perfilProdPie').textContent = `${cats} categoría${cats === 1 ? '' : 's'} en el inventario`;
+            $('perfilEventosPie').textContent = `${porAna} agendado${porAna === 1 ? '' : 's'} por ${nombreIA()}`;
+        }
+
+        // modo 'cero': cifras y barras en cero, listas para crecer cuando aparezcan las tarjetas
+        function renderTablero(modo) {
+            if (!tableroListo) return;
+            const cero = modo === 'cero';
+            renderSabe(cero);
+            renderAgenda(cero);
+            renderColumnas(cero);
+            renderSemana();
+            renderPerfil(cero);
+        }
+        // Agrupa varios cambios seguidos (eventos, documentos, inventario...) en un solo repintado
+        function programarTablero() {
+            if (!tableroListo || tableroPendiente) return;
+            tableroPendiente = true;
+            requestAnimationFrame(() => { tableroPendiente = false; if (!esperandoCifras) renderTablero(); });
+        }
+
+        // ---------- Títulos que aparecen letra por letra, con desenfoque ----------
+        function unirLetras(el) {
+            el.querySelectorAll('.palabra').forEach((p) => p.replaceWith(document.createTextNode(p.textContent)));
+            el.normalize();
+        }
+        function partirLetras(el, base = 0) {
+            unirLetras(el);
+            el.setAttribute('aria-label', el.textContent.replace(/\s+/g, ' ').trim());
+            const textos = [];
+            const recorrido = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+            while (recorrido.nextNode()) textos.push(recorrido.currentNode);
+            let i = 0;
+            textos.forEach((nodo) => {
+                const frag = document.createDocumentFragment();
+                nodo.textContent.split(/(\s+)/).forEach((trozo) => {
+                    if (!trozo) return;
+                    if (/^\s+$/.test(trozo)) { frag.appendChild(document.createTextNode(trozo)); return; }
+                    const palabra = document.createElement('span');
+                    palabra.className = 'palabra';
+                    palabra.setAttribute('aria-hidden', 'true');
+                    [...trozo].forEach((c) => {
+                        const letra = document.createElement('span');
+                        letra.className = 'letra';
+                        letra.textContent = c;
+                        letra.style.setProperty('--i', i++);
+                        palabra.appendChild(letra);
+                    });
+                    frag.appendChild(palabra);
+                });
+                nodo.replaceWith(frag);
+            });
+            el.style.setProperty('--base', `${base}ms`);
+            clearTimeout(el._unir);
+            el._unir = setTimeout(() => unirLetras(el), base + i * 22 + 900); // al terminar, el texto vuelve a ser normal
+        }
+
+        // ---------- Entrada en cascada de una página ----------
+        function animarEntrada(raiz, retraso = 0) {
+            if (!raiz) return;
+            if (reducirMovimiento()) { renderTablero(); return; }
+            const piezas = [...raiz.querySelectorAll('[data-anim], .apartado')].filter((el) => !el.closest('.hidden'));
+            piezas.forEach((el, n) => {
+                clearTimeout(el._entra);
+                el.classList.remove('entra');
+                el.style.setProperty('--retraso', `${retraso + n * 75}ms`);
+            });
+            void raiz.offsetWidth;
+            piezas.forEach((el, n) => {
+                el.classList.add('entra');
+                // se quita al terminar para que vuelvan los efectos al pasar el mouse
+                el._entra = setTimeout(() => el.classList.remove('entra'), retraso + n * 75 + 1900);
+            });
+            raiz.querySelectorAll('[data-letras]').forEach((t) => { if (!t.closest('.hidden')) partirLetras(t, retraso + 160); });
+            clearTimeout(esperandoCifras);
+            renderTablero('cero'); // cifras en cero mientras las tarjetas entran...
+            esperandoCifras = setTimeout(() => { esperandoCifras = null; renderTablero(); }, retraso + 420); // ...y luego giran y crecen
+        }
+        // Un solo bloque que entra (apartado de Empresa, vista de Inventario)
+        function animarPieza(el) {
+            if (!panelListo || introCorriendo || !el || reducirMovimiento()) return;
+            clearTimeout(el._entra);
+            el.classList.remove('entra');
+            el.style.setProperty('--retraso', '0ms');
+            void el.offsetWidth;
+            el.classList.add('entra');
+            el._entra = setTimeout(() => el.classList.remove('entra'), 1200);
+        }
+
+        // ---------- Cambio de pestaña: la actual se desvanece y la nueva entra ----------
+        function cambiarPagina(anterior, nueva, misma) {
+            clearTimeout(cambioPagina);
+            const mostrarSolo = () => Object.values(PESTANAS).forEach((el) => { el.classList.remove('saliendo'); el.classList.toggle('hidden', el !== nueva); });
+            if (misma || !anterior || !panelListo || introCorriendo || reducirMovimiento()) {
+                mostrarSolo();
+                if (!misma && anterior && panelListo && !introCorriendo) animarEntrada(nueva);
+                return;
+            }
+            Object.values(PESTANAS).forEach((el) => { if (el !== nueva && !el.classList.contains('hidden')) el.classList.add('saliendo'); });
+            cambioPagina = setTimeout(() => {
+                mostrarSolo();
+                nueva.scrollTop = 0;
+                animarEntrada(nueva);
+            }, 280);
+        }
+
+        // ---------- Indicador del riel (círculo menta que se desliza al ícono activo) ----------
+        const indicador = document.querySelector('.riel-indicador');
+        function moverIndicador(sinAnimar = false) {
+            const activa = document.querySelector('#tabs .tab.activa');
+            if (!activa || !indicador) return;
+            if (sinAnimar) indicador.style.transition = 'none';
+            indicador.style.transform = `translate(${activa.offsetLeft}px, ${activa.offsetTop}px)`;
+            if (sinAnimar) { void indicador.offsetWidth; indicador.style.transition = ''; }
+        }
+        window.addEventListener('resize', () => moverIndicador(true));
+
+        // ---------- Accesos directos del tablero ----------
+        document.addEventListener('click', (e) => {
+            const ir = e.target.closest('[data-ir-tab]');
+            if (!ir) return;
+            mostrarPestana(ir.dataset.irTab);
+            if (ir.dataset.irApartadoTab) mostrarApartado(ir.dataset.irApartadoTab);
+        });
+        function resaltar(el) {
+            el.scrollIntoView({ behavior: reducirMovimiento() ? 'auto' : 'smooth', block: 'nearest' });
+            animarPieza(el);
+        }
+        $('heroHablar').addEventListener('click', () => { resaltar($('chatPanel')); userInput.focus({ preventScroll: true }); });
+        $('irCalendario').addEventListener('click', () => resaltar($('calendarPanel')));
+
+        // ---------- Intro: logo al centro → viaja a la esquina del riel → el círculo descubre el panel ----------
+        function correrIntro() {
+            const html = document.documentElement;
+            const intro = $('intro');
+            const app = $('app');
+            if (!html.classList.contains('con-intro') || document.body.classList.contains('sin-sesion') || !app.animate) {
+                html.classList.remove('con-intro');
+                intro.remove();
+                animarEntrada(PESTANAS[pestanaActiva]);
+                return;
+            }
+            introCorriendo = true;
+            const logo = intro.querySelector('.intro-logo');
+            // Destino: el logo del riel; en celulares chicos (donde se oculta), el círculo menta de la pestaña activa
+            let destino = document.querySelector('.riel-logo .orbe-mini').getBoundingClientRect();
+            if (!destino.width) destino = indicador.getBoundingClientRect();
+            const tam = logo.offsetWidth;
+            const visible = destino.width > 0;
+            const rx = visible ? destino.left + destino.width / 2 : 32, ry = visible ? destino.top + destino.height / 2 : 32;
+            const desde = `translate(${innerWidth / 2 - tam / 2}px, ${innerHeight * 0.55 - tam / 2}px)`;
+            const hasta = `translate(${rx - tam / 2}px, ${ry - tam / 2}px) scale(${visible ? destino.width / tam : 0.4})`;
+            const radio = Math.hypot(Math.max(rx, innerWidth - rx), Math.max(ry, innerHeight - ry)) + 40;
+            const circulo = (r) => `circle(${r}px at ${rx}px ${ry}px)`;
+            // Polvo brillante de fondo
+            for (let i = 0; i < 18; i++) {
+                const p = document.createElement('span');
+                p.className = 'intro-polvo';
+                p.style.left = `${Math.random() * 100}%`;
+                p.style.top = `${Math.random() * 100}%`;
+                p.style.animationDelay = `${-Math.random() * 3}s`;
+                intro.appendChild(p);
+            }
+            const animaciones = [];
+            const anima = (el, cuadros, opciones) => { const a = el.animate(cuadros, { fill: 'forwards', ...opciones }); animaciones.push(a); return a; };
+            let terminada = false;
+            const terminar = () => {
+                if (terminada) return;
+                terminada = true;
+                animaciones.forEach((a) => a.cancel());
+                html.classList.remove('con-intro');
+                app.style.clipPath = '';
+                intro.remove();
+                introCorriendo = false;
+                moverIndicador(true);
+            };
+            let entro = false;
+            const entrar = () => { if (!entro) { entro = true; animarEntrada(PESTANAS[pestanaActiva], 120); } };
+            // 1) aparece el logo, 2) viaja a la esquina, 3) burbuja pequeña, 4) el círculo se abre
+            anima(logo, [{ transform: `${desde} scale(0.55)`, opacity: 0 }, { transform: `${desde} scale(1)`, opacity: 1 }], { duration: 650, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)' });
+            anima(logo, [{ transform: `${desde} scale(1)`, opacity: 1 }, { transform: hasta, opacity: 1 }], { duration: 850, delay: 750, easing: 'cubic-bezier(0.65, 0, 0.35, 1)' });
+            anima(app, [{ clipPath: circulo(0) }, { clipPath: circulo(26) }], { duration: 320, delay: 1350, easing: 'cubic-bezier(0.34, 1.45, 0.5, 1)' });
+            const abrir = anima(app, [{ clipPath: circulo(26) }, { clipPath: circulo(radio) }], { duration: 950, delay: 1750, easing: 'cubic-bezier(0.7, 0, 0.2, 1)' });
+            setTimeout(entrar, 1700);
+            abrir.finished.then(terminar).catch(() => {});
+            const saltar = () => { entrar(); terminar(); };
+            intro.addEventListener('click', saltar);
+            addEventListener('keydown', saltar, { once: true });
+        }
+
+        tableroListo = true;
+
+        // ==========================================
         // ARRANQUE
         // ==========================================
         renderNotificaciones();
@@ -4095,6 +5060,10 @@
             metricsTimer = setInterval(refrescarCanales, METRICS_INTERVALO_MS);
         }
         mostrarPestana(location.hash.replace('#', '') || cargar('ana_pestana', 'principal'));
+        moverIndicador(true);
+        renderTablero();
+        correrIntro();
+        panelListo = true;
     </script>
 </body>
 </html>
