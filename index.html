@@ -573,6 +573,9 @@
         }
         .det-evento button { color: var(--texto-tenue); font-size: 1rem; line-height: 1; padding: 0 0.3rem; }
         .det-evento button:hover { color: var(--rojo); }
+        .det-evento button[data-completar]:hover { color: var(--verde); }
+        .det-evento.completado { opacity: 0.6; text-decoration: line-through; }
+        .cal-evento.completado { opacity: 0.5; text-decoration: line-through; }
         #calForm { display: flex; align-items: center; gap: 0.4rem; flex-shrink: 0; }
         #calNuevoTitulo { width: 12rem; padding: 0.45rem 0.65rem; }
         #calForm .btn-verde { padding: 0.45rem 0.85rem; }
@@ -2092,6 +2095,7 @@
         const IMAGE_ENDPOINT = `${API_BASE}/send_image/images`;
         const UPLOAD_ENDPOINT = `${API_BASE}/upload`;
         const METRICS_ENDPOINT = (canal) => `${API_BASE}/metrics/${canal}`;
+        const EVENTOS_ENDPOINT = `${API_RAIZ}/eventos`; // calendario de la cuenta (backend events/), solo con login
         const WEBHOOK_URL = { instagram: `${API_RAIZ}/message_into` }; // se copia con un botón, nunca se muestra
         const METRICS_INTERVALO_MS = 30000; // cada cuánto se refrescan las métricas de Instagram
 
@@ -2271,7 +2275,9 @@
         // ==========================================
         // ESTADO
         // ==========================================
-        let eventos = cargar('ana_eventos', []);            // [{ id, fecha: 'YYYY-MM-DD', titulo, origen: 'ana'|'manual' }]
+        // Con login el calendario vive en el servidor (ids ev_NNN) y aquí queda una copia para pintar al instante;
+        // un evento con otro id todavía no llegó al servidor y se sube al volver a traer el calendario.
+        let eventos = cargar('ana_eventos', []);            // [{ id, fecha: 'YYYY-MM-DD', titulo, origen: 'ana'|'manual', estado? }]
         let empresa = cargar('ana_empresa', {});            // { ...camposEmpresa, actualizado, enServidor }
         // Con login, el servidor guarda todo en el espacio de la cuenta (claveServidor) y el nombre de la empresa es solo
         // el que el usuario escribe en su ficha. Una cuenta unida a una empresa por el claim empieza con ese nombre.
@@ -2329,6 +2335,7 @@
             let cambios = false;
 
             eventos.forEach((ev) => {
+                if (ev.estado === 'completado') return;
                 const f = fechaDesdeClave(ev.fecha);
                 const dias = Math.round((f - hoy) / 86400000);
                 if (dias < 0 || dias > 3) return;
@@ -2375,7 +2382,7 @@
                 if (clave === hoyClave) clases.push('hoy');
                 if (clave === diaSeleccionado) clases.push('seleccionado');
 
-                const chips = evs.slice(0, 2).map((e) => `<span class="cal-evento ${e.origen}" title="${escaparHtml(e.titulo)}">${escaparHtml(e.titulo)}</span>`).join('');
+                const chips = evs.slice(0, 2).map((e) => `<span class="cal-evento ${e.origen}${e.estado === 'completado' ? ' completado' : ''}" title="${escaparHtml(e.titulo)}">${escaparHtml(e.titulo)}</span>`).join('');
                 const mas = evs.length > 2 ? `<span class="cal-mas">+${evs.length - 2} más</span>` : '';
                 const puntos = evs.length ? `<span class="cal-puntos">${evs.slice(0, 4).map((e) => `<span class="cal-punto ${e.origen}"></span>`).join('')}</span>` : '';
 
@@ -2392,7 +2399,7 @@
         function renderProximos() {
             const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
             const hoyClave = claveFecha(hoy);
-            const proximos = eventos.filter((e) => e.fecha >= hoyClave);
+            const proximos = eventos.filter((e) => e.fecha >= hoyClave && e.estado !== 'completado');
             $('proximosContador').textContent = proximos.length ? `${proximos.length} pendiente${proximos.length === 1 ? '' : 's'}` : '';
             if (!proximos.length) {
                 $('proximosLista').innerHTML = `<div class="vacio">No hay eventos próximos. Pídele a ${escaparHtml(nombreIA())} que agende algo o agrégalo en el calendario.</div>`;
@@ -2425,7 +2432,11 @@
             $('calDetalleFecha').textContent = formatearFechaLarga(f);
             const evs = eventosDe(diaSeleccionado);
             $('calDetalleEventos').innerHTML = evs.length
-                ? evs.map((e) => `<span class="det-evento" title="${e.origen === 'ana' ? `Agendado por ${escaparHtml(nombreIA())}` : 'Agregado manualmente'}">${escaparHtml(e.titulo)}<button type="button" data-borrar="${e.id}" title="Quitar">×</button></span>`).join('')
+                ? evs.map((e) => {
+                    const hecho = e.estado === 'completado';
+                    const completar = hecho || !SESION ? '' : `<button type="button" data-completar="${escaparHtml(e.id)}" title="Marcar como completado">✓</button>`;
+                    return `<span class="det-evento${hecho ? ' completado' : ''}" title="${hecho ? 'Completado' : e.origen === 'ana' ? `Agendado por ${escaparHtml(nombreIA())}` : 'Agregado manualmente'}">${escaparHtml(e.titulo)}${completar}<button type="button" data-borrar="${escaparHtml(e.id)}" title="Quitar">×</button></span>`;
+                }).join('')
                 : '<span class="text-xs texto-tenue">Sin eventos este día.</span>';
         }
 
@@ -2434,10 +2445,11 @@
             if (!fecha || !titulo) return null;
             // Evitar duplicados exactos
             if (eventos.some((e) => e.fecha === fecha && e.titulo.toLowerCase() === titulo.toLowerCase())) return null;
-            const ev = { id: uid(), fecha, titulo, origen };
+            const ev = { id: uid(), fecha, titulo, origen, estado: 'pendiente' };
             eventos.push(ev);
             eventos.sort((a, b) => a.fecha.localeCompare(b.fecha));
             guardar('ana_eventos', eventos);
+            subirEvento(ev);
             if (!silencioso) {
                 const f = fechaDesdeClave(fecha);
                 notificar(origen === 'ana' ? 'ok' : 'info', `${origen === 'ana' ? `${nombreIA()} agendó` : 'Agregaste'} "${titulo}" para el ${f.toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })}.`);
@@ -2445,11 +2457,99 @@
             return ev;
         }
 
-        function quitarEvento(id) {
+        const enServidor = (ev) => /^ev_\d+$/.test(String(ev.id));
+        const rutaEvento = (accion, id) => `${EVENTOS_ENDPOINT}/${accion}/${encodeURIComponent(claveServidor())}${id ? `/${encodeURIComponent(id)}` : ''}`;
+
+        // Sube un evento nuevo al calendario de la cuenta; el servidor le da su id (ev_NNN). Si falla, queda solo aquí
+        // con su id local y se vuelve a intentar al traer el calendario.
+        async function subirEvento(ev) {
+            if (!SESION || enServidor(ev)) return false;
+            try {
+                const res = await apiFetch(rutaEvento('charge_event'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ fecha: ev.fecha, titulo: ev.titulo, origen: ev.origen })
+                });
+                marcarServidor(res.status < 500);
+                if (!res.ok) return false;
+                const guardado = await res.json();
+                if (!guardado || !enServidor(guardado)) return false;
+                if (!eventos.includes(ev)) {
+                    // Se quitó mientras se subía: se borra también del servidor
+                    apiFetch(rutaEvento('delete_event', guardado.id), { method: 'DELETE' }).catch(() => {});
+                    return true;
+                }
+                ev.id = guardado.id;
+                guardar('ana_eventos', eventos);
+                renderDetalleDia();
+                return true;
+            } catch (err) {
+                if (err instanceof TypeError) marcarServidor(false);
+                return false;
+            }
+        }
+
+        // Trae el calendario de la cuenta. El servidor manda; los eventos que solo están aquí (sin id ev_NNN) se suben.
+        async function traerEventosDelServidor() {
+            if (!SESION) return;
+            try {
+                const res = await apiFetch(rutaEvento('view_event'));
+                marcarServidor(res.status < 500);
+                if (!res.ok) return;
+                const lista = await res.json();
+                if (!Array.isArray(lista)) return;
+                const delServidor = lista
+                    .filter((e) => e && enServidor(e) && /^\d{4}-\d{2}-\d{2}$/.test(String(e.fecha)) && String(e.titulo || '').trim())
+                    .map((e) => ({ id: e.id, fecha: e.fecha, titulo: String(e.titulo).trim(), origen: e.origen === 'ana' ? 'ana' : 'manual', estado: e.estado === 'completado' ? 'completado' : 'pendiente' }));
+                const mismo = (a, b) => a.fecha === b.fecha && a.titulo.toLowerCase() === b.titulo.toLowerCase();
+                const porSubir = eventos.filter((e) => !enServidor(e) && !delServidor.some((s) => mismo(s, e)));
+                eventos = [...delServidor, ...porSubir].sort((a, b) => a.fecha.localeCompare(b.fecha));
+                guardar('ana_eventos', eventos);
+                renderCalendario();
+                revisarRecordatorios();
+                for (const ev of porSubir) await subirEvento(ev);
+            } catch (err) {
+                if (err instanceof TypeError) marcarServidor(false);
+                console.error('No se pudo traer el calendario:', err);
+            }
+        }
+
+        async function quitarEvento(id) {
             const ev = eventos.find((e) => e.id === id);
-            eventos = eventos.filter((e) => e.id !== id);
+            if (!ev) return;
+            if (SESION && enServidor(ev)) {
+                try {
+                    const res = await apiFetch(rutaEvento('delete_event', ev.id), { method: 'DELETE' });
+                    marcarServidor(res.status < 500);
+                    if (!res.ok && res.status !== 404) { notificar('error', `No se pudo quitar "${ev.titulo}". Intenta de nuevo.`); return; }
+                } catch (err) {
+                    if (err instanceof TypeError) marcarServidor(false);
+                    notificar('error', `No se pudo quitar "${ev.titulo}": el servidor no responde.`);
+                    return;
+                }
+            }
+            eventos = eventos.filter((e) => e !== ev);
             guardar('ana_eventos', eventos);
-            if (ev) notificar('info', `Se quitó "${ev.titulo}" del calendario.`);
+            notificar('info', `Se quitó "${ev.titulo}" del calendario.`);
+            renderCalendario();
+        }
+
+        async function completarEvento(id) {
+            const ev = eventos.find((e) => e.id === id);
+            if (!ev || ev.estado === 'completado') return;
+            if (!enServidor(ev)) { notificar('info', `"${ev.titulo}" todavía se está guardando. Intenta en un momento.`); return; }
+            try {
+                const res = await apiFetch(rutaEvento('update_event', ev.id), { method: 'PUT' });
+                marcarServidor(res.status < 500);
+                if (!res.ok) { notificar('error', `No se pudo marcar "${ev.titulo}" como completado.`); return; }
+            } catch (err) {
+                if (err instanceof TypeError) marcarServidor(false);
+                notificar('error', `No se pudo marcar "${ev.titulo}": el servidor no responde.`);
+                return;
+            }
+            ev.estado = 'completado';
+            guardar('ana_eventos', eventos);
+            notificar('ok', `"${ev.titulo}" quedó como completado.`);
             renderCalendario();
         }
 
@@ -2465,6 +2565,8 @@
             if (btn) irAFecha(btn.dataset.fecha);
         });
         $('calDetalleEventos').addEventListener('click', (e) => {
+            const completar = e.target.closest('[data-completar]');
+            if (completar) { completarEvento(completar.dataset.completar); return; }
             const btn = e.target.closest('[data-borrar]');
             if (btn) quitarEvento(btn.dataset.borrar);
         });
@@ -4715,7 +4817,7 @@
             const domingo = new Date(hoy); domingo.setDate(hoy.getDate() + (6 - ((hoy.getDay() + 6) % 7)));
             const finSemana = claveFecha(domingo);
             const finMes = claveFecha(new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0));
-            const proximos = eventos.filter((e) => e.fecha >= hoyClave);
+            const proximos = eventos.filter((e) => e.fecha >= hoyClave && e.estado !== 'completado');
             const semana = proximos.filter((e) => e.fecha <= finSemana).length;
             const mes = proximos.filter((e) => e.fecha > finSemana && e.fecha <= finMes).length;
             const despues = proximos.length - semana - mes;
@@ -5052,6 +5154,7 @@
         } else {
             traerEmpresaDelServidor();
             traerInventarioDelServidor();
+            traerEventosDelServidor();
             if (empresa.actualizado && empresa.nombre && !empresa.enServidor) enviarEmpresaAlServidor(); // datos guardados antes de que llegaran al servidor
             if (claveServidor() && inventario.actualizado && !inventario.enServidor) enviarInventario();
             setInterval(revisarSincronizacion, 60000);
