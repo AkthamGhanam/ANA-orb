@@ -2845,14 +2845,27 @@
             }
         }
 
-        empresaForm.addEventListener('input', () => marcarPendiente('perfil', true));
-        empresaForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
+        // Empresa y Asistente viajan juntos al servidor (una sola ficha). Al guardar cualquiera de los dos
+        // se toman también los cambios sin guardar del otro, para no enviarlos a medias ni borrarlos al repintar.
+        const hayPendiente = (clave) => !document.querySelector(`[data-pendiente="${clave}"]`).classList.contains('hidden');
+        function tomarEmpresaDelForm() {
             const nuevo = {};
             Object.entries(camposEmpresa).forEach(([k, id]) => { nuevo[k] = $(id).value.trim(); });
             nuevo.actualizado = new Date().toISOString();
             empresa = nuevo;
             guardar('ana_empresa', empresa);
+        }
+        function tomarAsistenteDelForm() {
+            asistente = { ...ASISTENTE_DEFECTO, ...leerAsistenteForm(), actualizado: new Date().toISOString() };
+            if (!asistente.nombre) asistente.nombre = ASISTENTE_DEFECTO.nombre;
+            guardar('ana_asistente', asistente);
+        }
+
+        empresaForm.addEventListener('input', () => marcarPendiente('perfil', true));
+        empresaForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            tomarEmpresaDelForm();
+            if (hayPendiente('asistente')) tomarAsistenteDelForm();
             renderEmpresa();
             renderAsistente();
             const boton = empresaForm.querySelector('button[type="submit"]');
@@ -2959,9 +2972,8 @@
         asistenteForm.addEventListener('input', () => { marcarPendiente('asistente', true); renderVistaPrevia(); });
         asistenteForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            asistente = { ...ASISTENTE_DEFECTO, ...leerAsistenteForm(), actualizado: new Date().toISOString() };
-            if (!asistente.nombre) asistente.nombre = ASISTENTE_DEFECTO.nombre;
-            guardar('ana_asistente', asistente);
+            tomarAsistenteDelForm();
+            if (hayPendiente('perfil') && $('empNombre').value.trim()) { tomarEmpresaDelForm(); renderEmpresa(); }
             renderAsistente();
             // La configuración del asistente forma parte de la ficha de la empresa en el servidor
             const ok = empresa.nombre ? await enviarEmpresaAlServidor() : null;
