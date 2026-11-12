@@ -1584,7 +1584,7 @@
                 </div>
                 <div class="form-pie">
                     <span id="empresaEstado" class="estado-form"></span>
-                    <button type="submit" class="btn-verde">Guardar datos</button>
+                    <button type="submit" class="btn-verde" title="Guarda Empresa y Asistente juntos">Guardar todo</button>
                 </div>
             </form>
         </section>
@@ -1688,7 +1688,7 @@
                     <span id="asistenteEstado" class="estado-form"></span>
                     <div class="flex items-center gap-2">
                         <button type="button" id="asistenteRestablecer" class="btn-texto">Restablecer</button>
-                        <button type="submit" class="btn-verde">Guardar configuración</button>
+                        <button type="submit" class="btn-verde" title="Guarda Empresa y Asistente juntos">Guardar todo</button>
                     </div>
                 </div>
             </form>
@@ -2782,8 +2782,12 @@
             const cuerpo = JSON.stringify(empresaParaServidor());
             const pedir = (url, method) => apiFetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: cuerpo });
             try {
-                let res = await pedir(`${API_RAIZ}/empresa/carga`, 'POST');
-                if (res.status === 409) res = await pedir(`${API_RAIZ}/empresa/update/${encodeURIComponent(claveServidor())}`, 'PUT');
+                // Una sola petición: si la ficha ya está en el servidor se actualiza directo; si no, se crea.
+                const actualizar = () => pedir(`${API_RAIZ}/empresa/update/${encodeURIComponent(claveServidor())}`, 'PUT');
+                const crear = () => pedir(`${API_RAIZ}/empresa/carga`, 'POST');
+                let res = empresa.enServidor ? await actualizar() : await crear();
+                if (res.status === 409) res = await actualizar();      // ya existía (otro navegador)
+                else if (res.status === 404 && empresa.enServidor) res = await crear(); // se borró en el servidor
                 marcarServidor(res.status < 500);
                 if (!res.ok) throw new Error(`Error en /empresa: ${res.status}`);
                 empresa.enServidor = new Date().toISOString();
@@ -2845,14 +2849,13 @@
             }
         }
 
-        // Empresa y Asistente viajan juntos al servidor (una sola ficha). Al guardar cualquiera de los dos
-        // se toman también los cambios sin guardar del otro, para no enviarlos a medias ni borrarlos al repintar.
-        const hayPendiente = (clave) => !document.querySelector(`[data-pendiente="${clave}"]`).classList.contains('hidden');
+        // Empresa y Asistente son UNA sola ficha en el servidor: los dos botones Guardar hacen lo mismo,
+        // toman los dos formularios y envían una sola carga.
         function tomarEmpresaDelForm() {
             const nuevo = {};
             Object.entries(camposEmpresa).forEach(([k, id]) => { nuevo[k] = $(id).value.trim(); });
             nuevo.actualizado = new Date().toISOString();
-            empresa = nuevo;
+            empresa = { ...nuevo, enServidor: empresa.enServidor || null };
             guardar('ana_empresa', empresa);
         }
         function tomarAsistenteDelForm() {
@@ -2861,23 +2864,34 @@
             guardar('ana_asistente', asistente);
         }
 
-        empresaForm.addEventListener('input', () => marcarPendiente('perfil', true));
-        empresaForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
+        let guardandoConfiguracion = false;
+        async function guardarConfiguracion() {
+            if (guardandoConfiguracion) return;
+            if (!$('empNombre').value.trim()) {
+                notificar('alerta', 'Escribe el nombre de la empresa en el apartado Empresa para poder guardar.');
+                return;
+            }
+            const nombreAntes = empresa.nombre;
             tomarEmpresaDelForm();
-            if (hayPendiente('asistente')) tomarAsistenteDelForm();
+            tomarAsistenteDelForm();
             renderEmpresa();
             renderAsistente();
-            const boton = empresaForm.querySelector('button[type="submit"]');
-            boton.disabled = true;
+            const botones = document.querySelectorAll('#empresaForm button[type="submit"], #asistenteForm button[type="submit"]');
+            guardandoConfiguracion = true;
+            botones.forEach((b) => { b.disabled = true; });
             const ok = await enviarEmpresaAlServidor();
-            boton.disabled = false;
+            botones.forEach((b) => { b.disabled = false; });
+            guardandoConfiguracion = false;
             renderAvisoInventario();
-            if (inventario.actualizado) { inventario.enServidor = null; enviarInventario(); }
+            // El inventario lleva el nombre de la empresa: solo se reenvía si el nombre cambió
+            if (inventario.actualizado && empresa.nombre !== nombreAntes) { inventario.enServidor = null; enviarInventario(); }
             notificar(ok ? 'ok' : 'alerta', ok
-                ? `Datos de ${empresa.nombre} guardados y enviados. ${nombreIA()} ya los usa para responder.`
+                ? `Datos de ${empresa.nombre} y configuración de ${nombreIA()} guardados y enviados.`
                 : `Datos de ${empresa.nombre} guardados en este navegador, pero no llegaron al servidor. Vuelve a guardar para reintentar.`);
-        });
+        }
+
+        empresaForm.addEventListener('input', () => marcarPendiente('perfil', true));
+        empresaForm.addEventListener('submit', (e) => { e.preventDefault(); guardarConfiguracion(); });
 
         // ---------- Configuración del asistente ----------
         const ASISTENTE_DEFECTO = { nombre: 'ANA', idioma: 'es', rol: '', saludo: '', tono: 'profesional', longitud: 'equilibrada', trato: 'tu', emojis: false, instrucciones: '' };
@@ -2970,17 +2984,7 @@
 
         const asistenteForm = $('asistenteForm');
         asistenteForm.addEventListener('input', () => { marcarPendiente('asistente', true); renderVistaPrevia(); });
-        asistenteForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            tomarAsistenteDelForm();
-            if (hayPendiente('perfil') && $('empNombre').value.trim()) { tomarEmpresaDelForm(); renderEmpresa(); }
-            renderAsistente();
-            // La configuración del asistente forma parte de la ficha de la empresa en el servidor
-            const ok = empresa.nombre ? await enviarEmpresaAlServidor() : null;
-            const base = `Configuración guardada: ${nombreIA()} hablará con tono ${NOMBRE_TONO[asistente.tono].toLowerCase()}.`;
-            notificar(ok === false ? 'alerta' : 'ok', ok === false ? `${base} No llegó al servidor; vuelve a guardar para reintentar.`
-                : ok ? base : `${base} Para enviarla al servidor, guarda primero los datos de la empresa.`);
-        });
+        asistenteForm.addEventListener('submit', (e) => { e.preventDefault(); guardarConfiguracion(); });
         $('asistenteRestablecer').addEventListener('click', () => {
             const actualizado = asistente.actualizado;
             asistente = { ...ASISTENTE_DEFECTO, actualizado };
