@@ -2647,8 +2647,26 @@
             return out;
         }
 
+        // Con login, ANA agenda en el servidor (backend: líneas [AGENDAR] en la respuesta del panel).
+        // El panel solo vuelve a traer el calendario y muestra lo nuevo; no adivina fechas en el texto.
+        async function mostrarEventosDeAna() {
+            const antes = new Set(eventos.map((e) => e.id));
+            await traerEventosDelServidor();
+            const nuevos = eventos.filter((e) => enServidor(e) && e.origen === 'ana' && !antes.has(e.id));
+            if (!nuevos.length) return;
+            const primero = fechaDesdeClave(nuevos[0].fecha);
+            mesVisible = new Date(primero.getFullYear(), primero.getMonth(), 1);
+            diaSeleccionado = nuevos[0].fecha;
+            renderCalendario();
+            const detalle = nuevos.length === 1
+                ? `"${nuevos[0].titulo}" para el ${primero.toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })}`
+                : `${nuevos.length} eventos ("${nuevos[0].titulo}")`;
+            notificar('ok', `${nombreIA()} agendó ${detalle} en el calendario.`);
+        }
+
         // Decide qué agendar a partir de la respuesta del modelo y del mensaje del usuario
         function procesarEventosDeRespuesta(dataResponse, textoUsuario, textoRespuesta) {
+            if (SESION) { mostrarEventosDeAna(); return []; }
             let lista = normalizarEventos(dataResponse.eventos ?? dataResponse.calendar_events ?? dataResponse.calendario ?? dataResponse.events);
 
             // Respaldo: si el usuario pidió algo del calendario y el backend no mandó 'eventos', se buscan fechas en el texto
