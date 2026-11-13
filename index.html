@@ -2073,11 +2073,11 @@
         //          serie: [{ fecha: "2026-10-01", valor: 12 }, ...],   (últimos 7 a 30 días)
         //          eventos: [{ id?, hora: "ISO", titulo: "Mensaje de Juan", texto: "Hola, ¿tienen...?" }] }
         // ==========================================
-        // NOTA: la dirección del servidor no se muestra en ninguna parte del panel. Si cambia la URL de ngrok,
+        // NOTA: la dirección del servidor no se muestra en ninguna parte del panel. Si cambia la URL del servidor,
         // actualiza API_POR_DEFECTO. Para probar otra sin tocar el código, abre la página una vez con
         // ?api=https://nueva-url/query: se guarda en este navegador, se quita de la barra de direcciones y
         // deja de usarse en cuanto API_POR_DEFECTO cambie.
-        const API_POR_DEFECTO = 'https://unrotund-imani-diarthrodial.ngrok-free.dev/query';
+        const API_POR_DEFECTO = 'https://3-134-231-79.sslip.io/query'; // servidor AWS (antes ngrok)
         const limpiarUrlApi = (url) => String(url || '').trim().replace(/\/+$/, '');
         const API_BASE = (() => {
             try {
