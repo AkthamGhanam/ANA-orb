@@ -479,8 +479,26 @@
         .escribiendo span:nth-child(2) { animation-delay: 0.2s; }
         .escribiendo span:nth-child(3) { animation-delay: 0.4s; }
         @keyframes puntos { 0%, 80%, 100% { opacity: 0.25; transform: translateY(0); } 40% { opacity: 1; transform: translateY(-3px); } }
+        /* Texto junto a los puntos cuando la respuesta tarda (el servidor avisa que sigue trabajando) */
+        .espera-txt { font-style: normal; font-size: 0.72rem; color: var(--texto-tenue); margin-left: 0.45rem; }
+        .espera-txt:empty { display: none; }
 
-        .chat-bienvenida { margin: auto; text-align: center; padding: 1rem; max-width: 22rem; }
+        /* Resumen del día en la bienvenida del chat (lo calcula el servidor sin usar el modelo) */
+        .resumen-dia { text-align: left; margin-top: 0.9rem; padding: 0.7rem 0.8rem; border-radius: 0.8rem; border: 1px solid var(--borde); background: var(--superficie-2); }
+        .resumen-dia-titulo { font-size: 0.68rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--texto-tenue); margin-bottom: 0.4rem; }
+        .resumen-punto { display: flex; gap: 0.5rem; align-items: flex-start; font-size: 0.78rem; line-height: 1.35; padding: 0.12rem 0; }
+        .resumen-punto::before { content: ''; flex-shrink: 0; width: 7px; height: 7px; border-radius: 50%; margin-top: 0.42rem; background: var(--verde); }
+        .resumen-punto.alerta::before { background: #f59e0b; }
+        .resumen-punto.hoy::before { background: var(--naranja, #f97316); }
+        .resumen-punto.ok::before { background: var(--menta); }
+
+        .chat-bienvenida { margin: auto; text-align: center; padding: 1rem; max-width: 24rem; }
+        /* Con el resumen del día la bienvenida se compacta para que resumen y sugerencias quepan sin desplazarse */
+        .chat-bienvenida.con-resumen { padding: 0.25rem 0.5rem; width: 100%; }
+        .chat-bienvenida.con-resumen .orbe-mini, .chat-bienvenida.con-resumen h2, .chat-bienvenida.con-resumen .ayuda { display: none; }
+        .chat-bienvenida.con-resumen .resumen-dia { margin-top: 0; }
+        .chat-bienvenida.con-resumen .sugerencias { margin-top: 0.55rem; gap: 0.35rem; flex-direction: row; flex-wrap: wrap; }
+        .chat-bienvenida.con-resumen .sugerencia { padding: 0.36rem 0.7rem; border-radius: 999px; font-size: 0.78rem; }
         .chat-bienvenida .orbe-mini { width: 3.6rem; height: 3.6rem; margin: 0 auto 0.9rem; }
         .chat-bienvenida h2 { font-size: 1.1rem; font-weight: 600; margin: 0 0 0.3rem; }
         .sugerencias { display: flex; flex-direction: column; gap: 0.4rem; margin-top: 1rem; }
@@ -784,6 +802,8 @@
         .estado.subido    { background: var(--verde-medio); color: var(--verde-texto); }
         .estado.pendiente { background: rgba(245, 158, 11, 0.15); color: #b45309; }
         .estado.subiendo  { background: var(--azul-suave); color: #0369a1; }
+        .estado.sinleer   { background: rgba(245, 158, 11, 0.15); color: #b45309; }
+        :root[data-tema="oscuro"] .estado.sinleer { color: #fcd34d; }
         :root[data-tema="oscuro"] .estado.pendiente { color: #fcd34d; }
         :root[data-tema="oscuro"] .estado.subiendo { color: #7dd3fc; }
         .chip-carpeta { display: inline-flex; align-items: center; gap: 0.25rem; font-size: 0.68rem; color: var(--texto-suave); }
@@ -2052,11 +2072,16 @@
         // servidor rechaza cualquier otra; los nombres de empresa del cuerpo son solo el nombre visible.
         // Rutas que existen hoy en el servidor:
         //   POST /query/into      -> FormData con 'audio'; devuelve { texto } transcrito
-        //   POST /query/response  -> { texto, empresa: "Nombre de la empresa" } -> { output }
-        //                            'empresa' es el NOMBRE (texto): con él el servidor carga la ficha guardada con /empresa/carga.
-        //                            Sin 'empresa' responde 400. El panel envía además asistente, documentos, archivos y
-        //                            eventos (hoy el servidor los ignora). Si algún día devuelve image_url (fotos del inventario)
-        //                            o eventos [{ fecha: "2026-10-15", titulo }] (calendario), el panel ya los muestra.
+        //   POST /query/response  -> { texto, stream: true } -> respuesta en vivo, un JSON por línea:
+        //                              { t: 'inicio' } · { t: 'espera', s } · { t: 'delta', d } · { t: 'fin', output, eventos, notas } · { t: 'error', error }
+        //                            Sin 'stream' (o con un servidor anterior) responde de una vez: { output, eventos?, notas? }.
+        //                            El servidor arma el contexto (ficha, inventario, agenda, documentos, notas) con la cuenta de la
+        //                            sesión; 'eventos' son los que agendó (ya guardados en el calendario, con su id ev_NNN).
+        //   POST /query/precalentar -> deja el modelo cargado y los datos de la cuenta leídos (al abrir y al cambiar datos)
+        //   POST /query/reset       -> el servidor olvida la conversación en curso (botón "Nueva conversación")
+        //   GET  /query/resumen     -> resumen del día sin modelo: { fecha, fecha_texto, puntos: [{ tipo, texto }], sugerencias, ... }
+        //   POST /query/upload      -> FormData con 'archivo', 'carpeta' y 'tipo' -> ficha { id, estado: 'indexado'|'sin_texto', motivo }
+        //   GET  /query/documents · DELETE /query/documents/<id> -> documentos que leyó el asistente
         //   POST /empresa/carga            -> crea la ficha de la empresa (409 si ya existe)
         //   PUT  /empresa/update/<empresa> -> la actualiza. Cuerpo de ambas: ver empresaParaServidor()
         //   POST   /inventario/load            -> FormData con 'inventory': archivo JSON { companies: [{ name_company, sector,
@@ -2065,8 +2090,6 @@
         //   GET    /inventario/search/<empresa> -> inventario guardado;  DELETE /inventario/delete/<empresa> -> lo borra
         //   GET/POST /message_into         -> webhook de Instagram (se pega en Meta for Developers)
         // Rutas que el panel usa pero el servidor todavía no tiene (responden 404 y el panel lo indica):
-        //   POST /query/upload    -> FormData con 'archivo', 'carpeta' (nombre de la carpeta), 'tipo' ('documento'|'imagen') y 'empresa'
-        //   POST /query/generate  -> recibe { texto } y devuelve la voz (texto a voz)
         //   GET  /query/send_image/images/<nombre_imagen> -> devuelve el archivo de 'images_inventory'
         //   GET  /query/metrics/instagram -> métricas reales de Instagram:
         //        { conectado: true, actualizado: "ISO", metricas: [{ etiqueta, valor, delta?: "+12% vs ayer", direccion?: "sube"|"baja" }],
@@ -2482,6 +2505,7 @@
                 ev.id = guardado.id;
                 guardar('ana_eventos', eventos);
                 renderDetalleDia();
+                datosCambiaron();
                 return true;
             } catch (err) {
                 if (err instanceof TypeError) marcarServidor(false);
@@ -2532,6 +2556,7 @@
             guardar('ana_eventos', eventos);
             notificar('info', `Se quitó "${ev.titulo}" del calendario.`);
             renderCalendario();
+            datosCambiaron();
         }
 
         async function completarEvento(id) {
@@ -2551,6 +2576,7 @@
             guardar('ana_eventos', eventos);
             notificar('ok', `"${ev.titulo}" quedó como completado.`);
             renderCalendario();
+            datosCambiaron();
         }
 
         calGrid.addEventListener('click', (e) => {
@@ -2647,35 +2673,70 @@
             return out;
         }
 
+// El usuario pide agendar algo (una orden), no pregunta por su agenda
+        const PIDE_AGENDAR = /\b(ag[eé]nd[ae]\w*|an[oó]t[ae]\w*|ap[uú]nt[ae]\w*|recu[eé]rd[ae]me\w*|program[ae]\w*|pon(?:me|er|lo|la)?\b.*\bcalendario)\b/i;
+
+        // Muestra en el calendario lo que se acaba de agendar y avisa
+        function mostrarAgendados(agregados) {
+            if (!agregados.length) return;
+            const primero = fechaDesdeClave(agregados[0].fecha);
+            mesVisible = new Date(primero.getFullYear(), primero.getMonth(), 1);
+            diaSeleccionado = agregados[0].fecha;
+            renderCalendario();
+            revisarRecordatorios();
+            const detalle = agregados.length === 1
+                ? `"${agregados[0].titulo}" para el ${primero.toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })}`
+                : `${agregados.length} fechas ("${agregados[0].titulo}")`;
+            notificar('ok', `${nombreIA()} agendó ${detalle} en el calendario.`);
+        }
+
         // Decide qué agendar a partir de la respuesta del modelo y del mensaje del usuario
         function procesarEventosDeRespuesta(dataResponse, textoUsuario, textoRespuesta) {
-            let lista = normalizarEventos(dataResponse.eventos ?? dataResponse.calendar_events ?? dataResponse.calendario ?? dataResponse.events);
+            const delServidor = dataResponse.eventos ?? dataResponse.calendar_events ?? dataResponse.calendario ?? dataResponse.events;
 
-            // Respaldo: si el usuario pidió algo del calendario y el backend no mandó 'eventos', se buscan fechas en el texto
-            if (!lista.length && /calendari|agend|recu[eé]rda|recordatorio|programa\b|fecha/i.test(textoUsuario)) {
+            if (SESION) {
+                // Con login el calendario vive en el servidor y es el servidor quien agenda lo que pide el usuario.
+                // Aquí solo se refleja lo que creó. Antes, además, el panel buscaba fechas en el texto y creaba eventos
+                // por su cuenta: quedaban duplicados y bastaba preguntar "¿qué tengo agendado?" para que apareciera
+                // un evento nuevo con esa pregunta como título.
+                if (Array.isArray(delServidor)) {
+                    const agregados = [];
+                    delServidor.forEach((e) => {
+                        if (!e || !enServidor(e) || !/^\d{4}-\d{2}-\d{2}$/.test(String(e.fecha)) || !String(e.titulo || '').trim()) return;
+                        const titulo = String(e.titulo).trim();
+                        eventos = eventos.filter((x) => x.id !== e.id && !(!enServidor(x) && x.fecha === e.fecha && x.titulo.toLowerCase() === titulo.toLowerCase()));
+                        const ev = { id: e.id, fecha: e.fecha, titulo, origen: 'ana', estado: e.estado === 'completado' ? 'completado' : 'pendiente' };
+                        eventos.push(ev);
+                        agregados.push(ev);
+                    });
+                    if (agregados.length) {
+                        eventos.sort((a, b) => a.fecha.localeCompare(b.fecha));
+                        guardar('ana_eventos', eventos);
+                        mostrarAgendados(agregados);
+                        traerResumen();
+                    }
+                    return agregados;
+                }
+                // Servidor anterior (no dice qué agendó): si se pidió agendar, se vuelve a traer el calendario
+                if (PIDE_AGENDAR.test(textoUsuario)) traerEventosDelServidor();
+                return [];
+            }
+
+            // Sin login el calendario es solo de este navegador
+            let lista = normalizarEventos(delServidor);
+            // Respaldo: si el usuario pidió agendar y el backend no mandó 'eventos', se buscan fechas en el texto
+            if (!lista.length && PIDE_AGENDAR.test(textoUsuario) && !/^\s*¿/.test(textoUsuario)) {
                 const titulo = tituloDesdeTexto(textoUsuario);
                 let fechas = extraerFechas(textoRespuesta);
                 if (!fechas.length) fechas = extraerFechas(textoUsuario);
                 lista = fechas.map((f) => ({ fecha: f, titulo }));
             }
-
             const agregados = [];
             lista.forEach((ev) => {
                 const creado = agregarEvento(ev.fecha, ev.titulo, 'ana', true);
                 if (creado) agregados.push(creado);
             });
-
-            if (agregados.length) {
-                const primero = fechaDesdeClave(agregados[0].fecha);
-                mesVisible = new Date(primero.getFullYear(), primero.getMonth(), 1);
-                diaSeleccionado = agregados[0].fecha;
-                renderCalendario();
-                revisarRecordatorios();
-                const detalle = agregados.length === 1
-                    ? `"${agregados[0].titulo}" para el ${primero.toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })}`
-                    : `${agregados.length} fechas ("${agregados[0].titulo}")`;
-                notificar('ok', `${nombreIA()} agendó ${detalle} en el calendario.`);
-            }
+            mostrarAgendados(agregados);
             return agregados;
         }
 
@@ -2791,6 +2852,7 @@
                 marcarServidor(res.status < 500);
                 if (!res.ok) throw new Error(`Error en /empresa: ${res.status}`);
                 empresa.enServidor = new Date().toISOString();
+                datosCambiaron();
             } catch (err) {
                 console.error('No se pudieron enviar los datos de la empresa:', err);
                 if (err instanceof TypeError) marcarServidor(false);
@@ -3114,8 +3176,13 @@
         const ICONO_REINTENTAR = '<svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h5M20 20v-5h-5M5.6 9A7 7 0 0118.4 9M18.4 15A7 7 0 015.6 15"/></svg>';
         const ICONO_QUITAR = '<svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>';
 
-        function etiquetaEstado(estado) {
-            return { subido: `Estudiado por ${nombreIA()}`, pendiente: 'Pendiente de envío', subiendo: 'Subiendo...' }[estado] || estado;
+        // 'subido' con leido === false: el servidor lo guardó pero no pudo sacarle el texto (imagen, PDF escaneado...)
+        function etiquetaEstado(estado, d) {
+            if (estado === 'subido' && d && d.leido === false) return 'Guardado, sin leer';
+            return { subido: `Leído por ${nombreIA()}`, pendiente: 'Pendiente de envío', subiendo: 'Subiendo...' }[estado] || estado;
+        }
+        function claseEstado(d) {
+            return d.estado === 'subido' && d.leido === false ? 'sinleer' : d.estado;
         }
         function selectMover(d) {
             return `<select class="input mover" data-mover="${d.id}" title="Mover a otra carpeta" aria-label="Carpeta de ${escaparHtml(d.nombre)}">${carpetas.map((c) => `<option value="${c.id}"${c.id === d.carpeta ? ' selected' : ''}>${escaparHtml(c.nombre)}</option>`).join('')}</select>`;
@@ -3132,7 +3199,7 @@
                         <div class="truncate" title="${escaparHtml(d.nombre)}">${escaparHtml(d.nombre)}</div>
                         <div class="doc-meta">${tamanoLegible(d.tamano)} · ${horaCorta(d.fecha)}${conCarpeta ? ` · <span class="chip-carpeta">${ICONO_CARPETA}${escaparHtml(nombreCarpeta(d.carpeta))}</span>` : ''}</div>
                     </div>
-                    <span class="estado ${d.estado}">${etiquetaEstado(d.estado)}</span>
+                    <span class="estado ${claseEstado(d)}"${d.motivo ? ` title="${escaparHtml(d.motivo)}"` : ''}>${etiquetaEstado(d.estado, d)}</span>
                     ${conMover ? selectMover(d) : ''}
                     ${botonesDoc(d)}
                 </div>`;
@@ -3231,19 +3298,27 @@
                 formData.append('archivo', file, file.name);
                 formData.append('carpeta', nombreCarpeta(doc.carpeta));
                 formData.append('tipo', esImagen(doc) ? 'imagen' : 'documento');
-                if (empresa.nombre) formData.append('empresa', empresa.nombre);
                 const res = await apiFetch(UPLOAD_ENDPOINT, { method: 'POST', body: formData });
                 marcarServidor(res.status < 500);
                 if (!res.ok) throw Object.assign(new Error(`Error en /upload: ${res.status}`), { status: res.status });
+                // El servidor responde con la ficha: { id, estado: 'indexado' | 'sin_texto', fragmentos, motivo }
+                let ficha = {};
+                try { ficha = await res.json(); } catch (_) { /* servidor que no devuelve ficha */ }
                 doc.estado = 'subido';
+                doc.servidorId = ficha.id || null;
+                doc.leido = ficha.estado ? ficha.estado === 'indexado' : undefined;
+                doc.motivo = ficha.motivo || '';
                 archivosEnMemoria.delete(doc.id);
-                notificar('ok', `${nombreIA()} recibió "${doc.nombre}" (${nombreCarpeta(doc.carpeta)}) y ya lo está estudiando.`);
+                if (doc.leido === false) notificar('alerta', `"${doc.nombre}" quedó guardado, pero ${nombreIA()} no pudo leerlo. ${doc.motivo}`.trim());
+                else notificar('ok', `${nombreIA()} ya leyó "${doc.nombre}" (${nombreCarpeta(doc.carpeta)}): pregúntale lo que necesites de él.`);
+                traerResumen();
             } catch (err) {
                 console.error('No se pudo subir el documento:', err);
                 if (err instanceof TypeError) marcarServidor(false);
                 doc.estado = 'pendiente';
                 notificar('alerta', err.status === 404
                     ? `"${doc.nombre}" quedó guardado solo en el panel: el servidor todavía no puede recibir archivos.`
+                    : err.status === 413 ? `"${doc.nombre}" pesa demasiado para enviarlo (máximo 25 MB).`
                     : `"${doc.nombre}" quedó pendiente: no se pudo enviar al servidor. Puedes reintentar.`);
             }
             guardarDocumentos();
@@ -3270,6 +3345,12 @@
             guardarDocumentos();
             renderDocumentos();
             if (doc) notificar('info', `Se quitó "${doc.nombre}" de la biblioteca.`);
+            // También se borra del servidor: si no, el asistente seguiría respondiendo con un documento que ya no está
+            if (doc && doc.servidorId && SESION) {
+                apiFetch(`${API_BASE}/documents/${encodeURIComponent(doc.servidorId)}`, { method: 'DELETE' })
+                    .then((res) => { if (!res.ok && res.status !== 404) throw new Error(String(res.status)); traerResumen(); })
+                    .catch(() => notificar('alerta', `"${doc.nombre}" se quitó del panel, pero no se pudo borrar del servidor.`));
+            }
         }
 
         // Zona de subida
@@ -3420,7 +3501,7 @@
         const sendBtn = $('sendBtn');
         const voiceBtn = $('voiceBtn');
         const orbe = $('orbeHeader');
-        let vozActiva = cargar('ana_voz', true);
+        let vozActiva = cargar('ana_voz_v2', null) ?? false; // apagada hasta que el usuario la encienda
         let ocupado = false;
 
         function setOrbState(state) {
@@ -3433,7 +3514,7 @@
             $('vozOffIcon').classList.toggle('hidden', vozActiva);
             $('vozToggle').title = vozActiva ? `Silenciar la voz de ${nombreIA()}` : `Activar la voz de ${nombreIA()}`;
         }
-        $('vozToggle').addEventListener('click', () => { vozActiva = !vozActiva; guardar('ana_voz', vozActiva); renderVozToggle(); });
+        $('vozToggle').addEventListener('click', () => { vozActiva = !vozActiva; guardar('ana_voz_v2', vozActiva); renderVozToggle(); if (!vozActiva) detenerVoz(); });
 
         function burbujaHtml(msg) {
             const fotos = (msg.fotos || []).length
@@ -3442,23 +3523,70 @@
             return `<div class="msg ${msg.rol}">${msg.rol === 'ana' ? '<div class="orbe-mini orbe-chico"></div>' : ''}<div class="burbuja">${escaparHtml(msg.texto)}${fotos}</div></div>`;
         }
 
-        const SUGERENCIAS = [
-            '¿Qué tengo agendado esta semana?',
-            'Agenda el pago de nómina para el 30 de octubre',
-            'Resume los documentos que te subí'
-        ];
+// Sugerencias de la bienvenida: las del resumen del día si el servidor lo envió; si no, unas generales
+        function sugerenciasChat() {
+            if (resumenDia && Array.isArray(resumenDia.sugerencias) && resumenDia.sugerencias.length) return resumenDia.sugerencias.slice(0, 4);
+            return [
+                '¿Qué tengo agendado esta semana?',
+                'Agéndame llamar al contador mañana',
+                documentos.some((d) => d.estado === 'subido' && d.leido !== false) ? 'Resume los documentos que te subí' : '¿Qué te falta saber de mi empresa para ayudarme mejor?'
+            ];
+        }
         chatMensajes.addEventListener('click', (e) => {
             const btn = e.target.closest('[data-sugerencia]');
             if (btn) enviarMensaje(btn.dataset.sugerencia);
         });
 
+        // ---------- Resumen del día (GET /query/resumen) ----------
+        // El servidor lo calcula sin usar el modelo (atrasados, lo de hoy, la semana, facturas, inventario),
+        // así que llega al instante. Se guarda una copia para pintarlo de una vez al abrir el panel.
+        let resumenDia = cargar('ana_resumen', null);
+        if (resumenDia && resumenDia.fecha !== claveFecha(new Date())) resumenDia = null; // el de ayer ya no sirve
+        function resumenHtml() {
+            if (!resumenDia || !Array.isArray(resumenDia.puntos) || !resumenDia.puntos.length) return '';
+            const titulo = `${nombreIA()} · tu día · ${String(resumenDia.fecha_texto || '').replace(/ de \d{4}$/, '')}`;
+            return `<div class="resumen-dia"><div class="resumen-dia-titulo">${escaparHtml(titulo)}</div>${resumenDia.puntos.slice(0, 4).map((p) =>
+                `<div class="resumen-punto ${['alerta', 'hoy', 'ok'].includes(p.tipo) ? p.tipo : 'info'}">${escaparHtml(p.texto)}</div>`).join('')}</div>`;
+        }
+        let servidorConResumen = true; // pasa a false si el servidor todavía no tiene estas rutas (404): no se insiste
+        async function traerResumen() {
+            if (!SESION || !servidorConResumen) return;
+            try {
+                const res = await apiFetch(`${API_BASE}/resumen`);
+                if (res.status === 404) servidorConResumen = false;
+                if (!res.ok) return; // servidor sin esta ruta todavía: se queda la bienvenida general
+                const datos = await res.json();
+                if (!datos || !Array.isArray(datos.puntos)) return;
+                resumenDia = datos;
+                guardar('ana_resumen', datos);
+                if (!chat.length) renderChat();
+            } catch (_) { /* sin conexión: se queda lo que había */ }
+        }
+
+        // ---------- Precalentado (POST /query/precalentar) ----------
+        // Al abrir el panel y cada vez que cambian los datos se avisa al servidor para que deje el modelo
+        // cargado y con los datos de la cuenta ya leídos: así el siguiente mensaje no paga esa espera.
+        let avisoCambios = null;
+        function datosCambiaron(espera = 2500) {
+            if (!SESION) return;
+            clearTimeout(avisoCambios);
+            avisoCambios = setTimeout(() => {
+                if (ocupado) { datosCambiaron(4000); return; } // ANA está respondiendo: después
+                if (!servidorConResumen) return;
+                apiFetch(`${API_BASE}/precalentar`, { method: 'POST' }).then((res) => { if (res.status === 404) servidorConResumen = false; }).catch(() => {});
+                traerResumen();
+            }, espera);
+        }
+
         function renderChat() {
             if (!chat.length) {
-                chatMensajes.innerHTML = `<div class="chat-bienvenida">
+                const resumen = resumenHtml();
+                chatMensajes.innerHTML = `<div class="chat-bienvenida${resumen ? ' con-resumen' : ''}">
                     <div class="orbe-mini"></div>
                     <h2>Hola, soy ${escaparHtml(nombreIA())}</h2>
-                    <div class="ayuda">${escaparHtml(asistente.saludo || 'Pregúntame lo que necesites, pídeme que agende fechas en el calendario o sube documentos en la pestaña Empresa para que los estudie.')}</div>
-                    <div class="sugerencias">${SUGERENCIAS.map((s) => `<button type="button" class="sugerencia" data-sugerencia="${escaparHtml(s)}">${escaparHtml(s)}</button>`).join('')}</div>
+                    <div class="ayuda">${escaparHtml(asistente.saludo || 'Pregúntame por tu agenda, tu inventario o tus documentos, pídeme que agende algo o que recuerde un dato de tu negocio.')}</div>
+                    ${resumen}
+                    <div class="sugerencias">${sugerenciasChat().map((s) => `<button type="button" class="sugerencia" data-sugerencia="${escaparHtml(s)}">${escaparHtml(s)}</button>`).join('')}</div>
                 </div>`;
                 return;
             }
@@ -3480,53 +3608,70 @@
             const actual = $('escribiendo');
             if (actual) actual.remove();
             if (mostrar) {
-                chatMensajes.insertAdjacentHTML('beforeend', `<div id="escribiendo" class="msg ana"><div class="orbe-mini orbe-chico thinking"></div><div class="burbuja escribiendo"><span></span><span></span><span></span></div></div>`);
+                chatMensajes.insertAdjacentHTML('beforeend', `<div id="escribiendo" class="msg ana"><div class="orbe-mini orbe-chico thinking"></div><div class="burbuja escribiendo"><span></span><span></span><span></span><em class="espera-txt"></em></div></div>`);
                 chatMensajes.scrollTop = chatMensajes.scrollHeight;
             }
+        }
+
+        // El servidor avisa cada pocos segundos mientras el modelo todavía no escribe (está leyendo los datos)
+        function mostrarEspera(segundos) {
+            const txt = document.querySelector('#escribiendo .espera-txt');
+            if (txt) txt.textContent = segundos >= 20 ? `Leyendo los datos de tu empresa… ${segundos} s` : 'Pensando…';
         }
 
         $('limpiarChat').addEventListener('click', () => {
             chat = [];
             guardar('ana_chat', chat);
             renderChat();
+            detenerVoz();
+            // El servidor también olvida el hilo (no los datos ni lo que se le pidió recordar)
+            if (SESION && servidorConResumen) apiFetch(`${API_BASE}/reset`, { method: 'POST' }).catch(() => {});
         });
 
-        // Escribe la respuesta letra por letra dentro de la última burbuja de ANA
-        function escribirRespuesta(msg, texto) {
+// Respaldo para servidores sin streaming: la respuesta llega entera y se escribe rápido (como máximo ~0,6 s;
+        // antes eran 14 ms por letra y una respuesta larga sumaba varios segundos de espera artificial).
+        function escribirRespuesta(burbuja, texto) {
             return new Promise((resolve) => {
                 let i = 0;
-                const velocidad = 14;
+                const salto = Math.max(2, Math.ceil(texto.length / 40));
                 function paso() {
-                    const nodos = chatMensajes.querySelectorAll('.msg.ana .burbuja');
-                    const burbuja = nodos[nodos.length - 1];
-                    if (!burbuja) { resolve(); return; }
-                    if (i < texto.length) {
-                        i = Math.min(texto.length, i + 1 + Math.floor(texto.length / 400));
-                        burbuja.firstChild.textContent = texto.slice(0, i);
-                        chatMensajes.scrollTop = chatMensajes.scrollHeight;
-                        setTimeout(paso, velocidad);
-                    } else {
-                        resolve();
-                    }
+                    if (!burbuja.isConnected || i >= texto.length) { resolve(); return; }
+                    i = Math.min(texto.length, i + salto);
+                    burbuja.textContent = texto.slice(0, i);
+                    chatMensajes.scrollTop = chatMensajes.scrollHeight;
+                    setTimeout(paso, 15);
                 }
                 paso();
             });
         }
 
-        // Contexto que viaja con cada consulta para que ANA conozca la empresa
-        function contextoEmpresa() {
-            return {
-                // El servidor espera el NOMBRE de la empresa (texto) y con él carga la ficha guardada en /empresa
-                empresa: empresa.nombre || '',
-                // Cómo debe comportarse el modelo (pestaña Empresa → Asistente)
-                asistente: {
-                    nombre: nombreIA(), tono: asistente.tono, longitud: asistente.longitud, trato: asistente.trato,
-                    idioma: asistente.idioma, emojis: !!asistente.emojis, saludo: asistente.saludo, instrucciones: asistente.instrucciones
-                },
-                documentos: documentos.filter((d) => d.estado === 'subido').map((d) => d.nombre),
-                archivos: documentos.filter((d) => d.estado === 'subido').map((d) => ({ nombre: d.nombre, carpeta: nombreCarpeta(d.carpeta), tipo: esImagen(d) ? 'imagen' : 'documento' })),
-                eventos: eventos.map(({ fecha, titulo }) => ({ fecha, titulo }))
+        // Lee la respuesta en vivo del servidor (un JSON por línea):
+        //   { t: 'inicio' } · { t: 'espera', s } · { t: 'delta', d: 'texto' } · { t: 'fin', output, eventos, notas } · { t: 'error', error }
+        async function leerRespuestaEnVivo(res, { alLlegarTexto, alEsperar }) {
+            const lector = res.body.getReader();
+            const decodificador = new TextDecoder();
+            let pendiente = '', fin = null;
+            const procesar = (linea) => {
+                linea = linea.trim();
+                if (!linea) return;
+                let ev;
+                try { ev = JSON.parse(linea); } catch (_) { return; }
+                if (ev.t === 'delta' && ev.d) alLlegarTexto(ev.d);
+                else if (ev.t === 'espera') alEsperar(ev.s || 0);
+                else if (ev.t === 'fin' || ev.t === 'error') fin = ev;
             };
+            for (;;) {
+                const { value, done } = await lector.read();
+                if (done) break;
+                pendiente += decodificador.decode(value, { stream: true });
+                let corte;
+                while ((corte = pendiente.indexOf('\n')) >= 0) {
+                    procesar(pendiente.slice(0, corte));
+                    pendiente = pendiente.slice(corte + 1);
+                }
+            }
+            procesar(pendiente);
+            return fin;
         }
 
         async function enviarMensaje(textoUsuario) {
@@ -3541,53 +3686,87 @@
             }
             ocupado = true;
             sendBtn.disabled = true;
+            detenerVoz();
             agregarMensaje('user', textoUsuario);
             setOrbState('thinking');
             mostrarEscribiendo(true);
 
+            // La burbuja de ANA se crea al llegar el primer texto y se va completando en vivo
+            let msg = null, burbuja = null, texto = '';
+            const pintar = (nuevo) => {
+                if (!msg) {
+                    mostrarEscribiendo(false);
+                    setOrbState('speaking');
+                    msg = agregarMensaje('ana', '');
+                    const nodos = chatMensajes.querySelectorAll('.msg.ana .burbuja');
+                    burbuja = nodos[nodos.length - 1];
+                }
+                texto = nuevo;
+                msg.texto = nuevo;
+                if (burbuja && burbuja.isConnected) burbuja.textContent = nuevo;
+                chatMensajes.scrollTop = chatMensajes.scrollHeight;
+            };
+
             try {
+                // El servidor carga la ficha, el inventario, la agenda y los documentos de la cuenta por su lado:
+                // aquí solo viaja el mensaje. 'empresa' se conserva para servidores sin login.
                 const resResponse = await apiFetch(`${API_BASE}/response`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ texto: textoUsuario, ...contextoEmpresa() })
+                    body: JSON.stringify({ texto: textoUsuario, empresa: empresa.nombre || '', stream: true })
                 });
                 marcarServidor(resResponse.status < 500);
                 if (!resResponse.ok) throw Object.assign(new Error(`Error en /response: ${resResponse.status}`), { status: resResponse.status });
 
-                const dataResponse = await resResponse.json();
-                // NOTA: ajusta esta clave según lo que realmente devuelva response_modelo()
-                const respuestaIA = String(dataResponse.output ?? dataResponse.respuesta ?? dataResponse.texto ?? JSON.stringify(dataResponse));
+                let dataResponse;
+                if ((resResponse.headers.get('Content-Type') || '').includes('ndjson') && resResponse.body) {
+                    dataResponse = await leerRespuestaEnVivo(resResponse, { alLlegarTexto: (d) => pintar(texto + d), alEsperar: mostrarEspera });
+                    if (!dataResponse || dataResponse.t === 'error') {
+                        if (!texto) throw Object.assign(new Error((dataResponse && dataResponse.error) || 'Respuesta incompleta'), { status: 503 });
+                        notificar('alerta', 'La respuesta se cortó antes de terminar. Puedes volver a preguntar.');
+                        dataResponse = { output: texto, eventos: [] };
+                    }
+                    pintar(String(dataResponse.output ?? texto));
+                } else {
+                    // Servidor sin streaming: la respuesta llega entera
+                    dataResponse = await resResponse.json();
+                    const respuestaIA = String(dataResponse.output ?? dataResponse.respuesta ?? dataResponse.texto ?? JSON.stringify(dataResponse));
+                    pintar('');
+                    await escribirRespuesta(burbuja, respuestaIA);
+                    pintar(respuestaIA);
+                }
+
                 const nombresImagenes = normalizarListaImagenes(dataResponse.image_url ?? dataResponse.image_urls);
-
-                mostrarEscribiendo(false);
-                setOrbState('speaking');
-                const msg = agregarMensaje('ana', '');
-                // Se renderiza el texto vacío y se va completando para el efecto de escritura
-                const nodos = chatMensajes.querySelectorAll('.msg.ana .burbuja');
-                nodos[nodos.length - 1].innerHTML = '<span></span>';
-
-                const [, , fotos] = await Promise.all([
-                    escribirRespuesta(msg, respuestaIA),
-                    vozActiva ? generarVoz(respuestaIA) : Promise.resolve(),
-                    nombresImagenes.length ? cargarImagenesInventario(nombresImagenes) : Promise.resolve([])
-                ]);
-
-                msg.texto = respuestaIA;
-                if (fotos && fotos.length) msg.fotos = fotos;
+                if (nombresImagenes.length) {
+                    const fotos = await cargarImagenesInventario(nombresImagenes);
+                    if (fotos.length) msg.fotos = fotos;
+                }
                 guardar('ana_chat', chat.slice(-60).map(({ rol, texto }) => ({ rol, texto })));
                 renderChat();
 
-                procesarEventosDeRespuesta(dataResponse, textoUsuario, respuestaIA);
+                hablar(texto); // no bloquea: se puede seguir escribiendo mientras habla
+                procesarEventosDeRespuesta(dataResponse, textoUsuario, texto);
+                if (Array.isArray(dataResponse.notas) && dataResponse.notas.length) {
+                    notificar('ok', `${nombreIA()} va a recordar: "${String(dataResponse.notas[0].texto || '').slice(0, 90)}".`);
+                    traerResumen();
+                }
             } catch (error) {
                 console.error('Error al conectar con el modelo:', error);
                 if (error instanceof TypeError) marcarServidor(false);
                 mostrarEscribiendo(false);
-                agregarMensaje('ana', error.status === 503 ? 'No pude generar la respuesta: el modelo no contestó. Inténtalo de nuevo en unos segundos.'
-                    : error.status === 400 ? 'El servidor no aceptó el mensaje. Revisa que el nombre de la empresa esté guardado en la pestaña Empresa.'
-                    : 'No pude conectarme con el servidor en este momento. Inténtalo de nuevo en unos segundos.');
-                notificar('error', error.status ? `El servidor respondió con error ${error.status} al generar la respuesta.` : 'Error de conexión con el modelo. Revisa que el servidor esté activo.');
+                if (texto) {
+                    // Ya se había mostrado parte de la respuesta: se conserva y se avisa
+                    guardar('ana_chat', chat.slice(-60).map(({ rol, texto }) => ({ rol, texto })));
+                    notificar('alerta', 'La respuesta se cortó: se perdió la conexión con el servidor.');
+                } else {
+                    agregarMensaje('ana', error.status === 503 ? 'No pude generar la respuesta: el modelo no contestó. Inténtalo de nuevo en unos segundos.'
+                        : error.status === 400 ? 'El servidor no aceptó el mensaje. Revisa que el nombre de la empresa esté guardado en la pestaña Empresa.'
+                        : error.status === 504 ? 'La respuesta tardó demasiado y el servidor cortó la espera. Inténtalo de nuevo.'
+                        : 'No pude conectarme con el servidor en este momento. Inténtalo de nuevo en unos segundos.');
+                    notificar('error', error.status ? `El servidor respondió con error ${error.status} al generar la respuesta.` : 'Error de conexión con el modelo. Revisa que el servidor esté activo.');
+                }
             } finally {
-                setOrbState('idle');
+                if (!hablando) setOrbState('idle');
                 ocupado = false;
                 sendBtn.disabled = false;
                 userInput.focus();
@@ -3603,38 +3782,36 @@
             if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendBtn.click(); }
         });
 
-        // ---------- Texto a voz vía /generate ----------
-        async function generarVoz(texto) {
+// ---------- Voz de ANA ----------
+        // Se usa la voz del navegador (speechSynthesis): suena al instante y no depende del servidor. Antes cada
+        // respuesta pedía /query/generate, que no existe en el servidor: una petición fallida por mensaje y el
+        // chat quedaba bloqueado hasta que terminaba.
+        let hablando = false;
+        const IDIOMA_VOZ = { es: 'es', en: 'en', pt: 'pt' };
+        function detenerVoz() {
+            hablando = false;
+            try { if ('speechSynthesis' in window) speechSynthesis.cancel(); } catch (_) { /* navegador sin voz */ }
+        }
+        function hablar(textoRespuesta) {
+            if (!vozActiva || !('speechSynthesis' in window) || !window.SpeechSynthesisUtterance) return;
+            // Las confirmaciones del sistema ("✓ Agendado...") se leen sin el símbolo
+            const limpio = String(textoRespuesta || '').replace(/[✓•*_#`]/g, '').replace(/\s+/g, ' ').trim();
+            if (!limpio) return;
             try {
-                const resVoz = await apiFetch(`${API_BASE}/generate`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ texto })
-                });
-                if (!resVoz.ok) throw new Error(`Error en /generate (voz): ${resVoz.status}`);
-
-                const contentType = resVoz.headers.get('Content-Type') || '';
-                let audioSrc = null, esBlob = false;
-                if (contentType.startsWith('audio/')) {
-                    audioSrc = URL.createObjectURL(await resVoz.blob());
-                    esBlob = true;
-                } else {
-                    // NOTA: ajusta estas claves según lo que realmente devuelva tu backend
-                    const dataVoz = await resVoz.json();
-                    audioSrc = dataVoz.audio_url ?? (dataVoz.audio_base64 ? `data:audio/mpeg;base64,${dataVoz.audio_base64}` : null);
-                }
-                if (audioSrc) {
-                    const audio = new Audio(audioSrc);
-                    await new Promise((resolve) => {
-                        audio.onended = resolve;
-                        audio.onerror = resolve;
-                        audio.play().catch(resolve);
-                    });
-                    if (esBlob) URL.revokeObjectURL(audioSrc);
-                }
-            } catch (error) {
-                console.error('Error al generar voz en /generate:', error);
-            }
+                const frase = new SpeechSynthesisUtterance(limpio.slice(0, 1200));
+                const idioma = IDIOMA_VOZ[asistente.idioma] || (navigator.language || 'es').slice(0, 2);
+                const voz = speechSynthesis.getVoices().find((v) => v.lang && v.lang.toLowerCase().startsWith(idioma));
+                if (voz) frase.voice = voz;
+                frase.lang = voz ? voz.lang : (idioma === 'es' ? 'es-CO' : idioma);
+                frase.rate = 1.05;
+                const terminar = () => { hablando = false; if (!ocupado) setOrbState('idle'); };
+                frase.onend = terminar;
+                frase.onerror = terminar;
+                hablando = true;
+                setOrbState('speaking');
+                speechSynthesis.cancel();
+                speechSynthesis.speak(frase);
+            } catch (_) { hablando = false; }
         }
 
         // ---------- Imágenes del inventario ----------
@@ -3974,6 +4151,7 @@
                 marcarServidor(res.status < 500);
                 if (!res.ok) throw new Error(`Error en /inventario: ${res.status}`);
                 if (inventario.actualizado === version) inventario.enServidor = new Date().toISOString();
+                datosCambiaron();
                 ok = true;
                 invAvisoFallo = false;
             } catch (err) {
@@ -4642,6 +4820,8 @@
             try {
                 const res = await apiFetch(METRICS_ENDPOINT(canal));
                 marcarServidor(res.status < 500); // cualquier respuesta legible (incluso 404) viene del servidor
+                // 404: el servidor todavía no tiene esta ruta. Se deja de preguntar cada 30 segundos (se reintenta al recargar o con el botón).
+                if (res.status === 404 && metricsTimer) { clearInterval(metricsTimer); metricsTimer = null; }
                 if (!res.ok) throw new Error(`Error en /metrics/${canal}: ${res.status}`);
                 const data = await res.json();
                 data.actualizado = data.actualizado || new Date().toISOString();
@@ -5171,6 +5351,8 @@
             traerEmpresaDelServidor();
             traerInventarioDelServidor();
             traerEventosDelServidor();
+            traerResumen();
+            datosCambiaron(300); // deja el modelo listo mientras el usuario mira el panel
             if (empresa.actualizado && empresa.nombre && !empresa.enServidor) enviarEmpresaAlServidor(); // datos guardados antes de que llegaran al servidor
             if (claveServidor() && inventario.actualizado && !inventario.enServidor) enviarInventario();
             setInterval(revisarSincronizacion, 60000);
