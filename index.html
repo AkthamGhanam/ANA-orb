@@ -1987,11 +1987,17 @@
                             <input id="invPSection" class="input" maxlength="80" placeholder="Ej. Vitrina principal">
                         </div>
                     </div>
-                    <div class="campos-3">
+                    <div class="campos-2">
                         <div>
                             <label class="label" for="invPPrice">Precio</label>
                             <input id="invPPrice" class="input" inputmode="decimal" maxlength="30" placeholder="Ej. 12.000">
                         </div>
+                        <div>
+                            <label class="label" for="invPCoin">Moneda</label>
+                            <input id="invPCoin" class="input" maxlength="10" placeholder="Ej. USD, COP, Bs">
+                        </div>
+                    </div>
+                    <div class="campos-2">
                         <div>
                             <label class="label" for="invPStock">Existencias</label>
                             <input id="invPStock" class="input" inputmode="decimal" maxlength="20" placeholder="Ej. 25">
@@ -3931,6 +3937,7 @@
             { k: 'item', nombre: 'Producto', claves: ['producto', 'nombre', 'item', 'articulo', 'name', 'product', 'servicio'] },
             { k: 'category', nombre: 'Categoría', claves: ['categoria', 'category', 'tipo', 'familia', 'linea', 'grupo'] },
             { k: 'price', nombre: 'Precio', claves: ['precio', 'price', 'valor', 'pvp', 'tarifa', 'costo'] },
+            { k: 'coin', nombre: 'Moneda', claves: ['moneda', 'coin', 'currency', 'divisa'] },
             { k: 'stock', nombre: 'Existencias', claves: ['existencias', 'stock', 'cantidad', 'disponible', 'disponibles', 'unidades', 'inventario', 'qty', 'quantity'] },
             { k: 'unit', nombre: 'Unidad', claves: ['unidad', 'unit', 'medida', 'um'] },
             { k: 'section', nombre: 'Sección', claves: ['seccion', 'section', 'ubicacion', 'pasillo', 'bodega', 'location', 'estante'] },
@@ -3939,7 +3946,7 @@
             { k: 'image_product', nombre: 'Imagen', claves: ['image product', 'imagen', 'foto', 'image', 'picture'] }
         ];
         const CLAVES_PRODUCTO = CAMPOS_PRODUCTO.map((c) => c.k);
-        const COLUMNAS_CSV = ['id', 'item', 'category', 'price', 'stock', 'unit', 'section', 'description'];
+        const COLUMNAS_CSV = ['id', 'item', 'category', 'price', 'coin', 'stock', 'unit', 'section', 'description'];
         const NOMBRE_ORIGEN = { manual: 'Creado aquí', archivo: 'Archivo', conexion: 'Conexión', servidor: 'Servidor' };
         const NOMBRE_FUENTE = { sheets: 'Google Sheets', enlace: 'un enlace' };
         const XLSX_URL = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
@@ -3974,7 +3981,7 @@
             const out = {};
             const id = String(p.id ?? '').trim();
             if (id) out.id = /^\d+$/.test(id) ? Number(id) : id;
-            ['item', 'category', 'description', 'section', 'unit', 'image_product'].forEach((k) => { const v = String(p[k] ?? '').trim(); if (v) out[k] = v; });
+            ['item', 'category', 'description', 'section', 'unit', 'coin', 'image_product'].forEach((k) => { const v = String(p[k] ?? '').trim(); if (v) out[k] = v; });
             ['price', 'stock'].forEach((k) => { const v = aNumero(p[k]); if (v !== '') out[k] = v; });
             // Campos extra que ya traía el producto (ej. image_product) se conservan
             Object.keys(p).forEach((k) => { if (!CLAVES_PRODUCTO.includes(k) && p[k] !== '' && p[k] != null) out[k] = p[k]; });
@@ -4367,7 +4374,7 @@
         });
 
         const invDialogo = $('invDialogo');
-        const CAMPOS_DIALOGO = { item: 'invPItem', id: 'invPId', category: 'invPCategory', section: 'invPSection', price: 'invPPrice', stock: 'invPStock', unit: 'invPUnit', description: 'invPDescription' };
+        const CAMPOS_DIALOGO = { item: 'invPItem', id: 'invPId', category: 'invPCategory', section: 'invPSection', price: 'invPPrice', coin: 'invPCoin', stock: 'invPStock', unit: 'invPUnit', description: 'invPDescription' };
 
         function abrirDialogoProducto(p = null) {
             invEditando = p;
@@ -4406,7 +4413,7 @@
             guardarInventario(inventario.origen || 'manual');
             const otro = !invEditando && e.submitter && e.submitter.dataset.otro;
             if (otro) {
-                // Se deja la categoría, la sección y la unidad para cargar varios parecidos seguidos
+                // Se deja la categoría, la sección, la unidad y la moneda para cargar varios parecidos seguidos
                 ['invPItem', 'invPId', 'invPPrice', 'invPStock', 'invPDescription'].forEach((id) => { $(id).value = ''; });
                 $('invPItem').focus();
             } else {
