@@ -1570,6 +1570,12 @@
                                 <input id="empWeb" class="input" placeholder="Ej. www.empresa.com">
                             </div>
                         </div>
+                        <div class="campos-2">
+                            <div>
+                                <label class="label" for="empPais">País</label>
+                                <input id="empPais" class="input" placeholder="Ej. Venezuela">
+                            </div>
+                        </div>
                     </div>
                     <div class="grupo">
                         <div class="grupo-titulo">Redes sociales</div>
@@ -2039,6 +2045,16 @@
                     </div>
                 </div>
                 <div class="seccion">
+                    <div class="webhook-fila">
+                        <div class="min-w-0">
+                            <span class="label">Cuenta de Instagram</span>
+                            <p class="ayuda">Conecta la cuenta de Instagram de tu empresa para que ANA responda sus mensajes.</p>
+                        </div>
+                        <button type="button" class="btn-secundario" data-conectar-ig>
+                            <svg class="icono-boton" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10 14a4 4 0 005.66 0l3-3a4 4 0 00-5.66-5.66l-1 1M14 10a4 4 0 00-5.66 0l-3 3a4 4 0 005.66 5.66l1-1"/></svg>
+                            Conectar Instagram
+                        </button>
+                    </div>
                     <div class="webhook-fila">
                         <div class="min-w-0">
                             <span class="label">Webhook de Instagram</span>
@@ -2774,7 +2790,7 @@
         const camposEmpresa = {
             nombre: 'empNombre', sector: 'empSector', productos: 'empProductos',
             mision: 'empMision', vision: 'empVision', valores: 'empValores',
-            horario: 'empHorario', contacto: 'empContacto', ubicacion: 'empUbicacion', web: 'empWeb',
+            horario: 'empHorario', contacto: 'empContacto', ubicacion: 'empUbicacion', web: 'empWeb', pais: 'empPais',
             whatsapp: 'empWhatsapp', instagram: 'empInstagram', facebook: 'empFacebook', linkedin: 'empLinkedin',
             otros: 'empOtros'
         };
@@ -2800,7 +2816,7 @@
         }
 
         // ---------- Envío de la ficha de la empresa al backend (/empresa) ----------
-        // company.py espera { name, company, color, tone, voice, lang, tags, restrictions, role,
+        // company.py espera { name, company, color, tone, voice, lang, country, tags, restrictions, role,
         // companyInfo: { biz, does, mission, values, vision }, socials: { instagram, facebook, linkedin, whatsapp } }.
         // Lo que no tiene campo propio en el servidor viaja como texto: horario, ubicación, contacto, web y otros
         // dentro de la descripción (biz), y el estilo del asistente dentro de las indicaciones (restrictions).
@@ -2816,6 +2832,7 @@
                 color: '', voice: '', tags: '',
                 tone: NOMBRE_TONO[a.tono] || '',
                 lang: IDIOMA_SERVIDOR[a.idioma] || '',
+                country: e.pais || '',
                 role: a.rol || '',
                 restrictions: unirFrases(
                     a.trato === 'usted' ? 'Trata al cliente de usted' : 'Tutea al cliente',
@@ -2885,7 +2902,7 @@
                 const info = d.companyInfo || {}, redes = d.socials || {}, ahora = new Date().toISOString();
                 empresa = {
                     nombre: texto(d.company) || empresa.nombre || '', sector: texto(info.biz), productos: texto(info.does),
-                    mision: texto(info.mission), vision: texto(info.vision), valores: texto(info.values),
+                    mision: texto(info.mission), vision: texto(info.vision), valores: texto(info.values), pais: texto(d.country),
                     whatsapp: texto(redes.whatsapp), instagram: texto(redes.instagram), facebook: texto(redes.facebook), linkedin: texto(redes.linkedin),
                     actualizado: ahora, enServidor: ahora
                 };
@@ -4705,6 +4722,23 @@
             }
         }));
         document.querySelectorAll('[data-refrescar]').forEach((btn) => btn.addEventListener('click', () => cargarMetricas(btn.dataset.refrescar, true)));
+
+        // Conectar Instagram: el servidor arma el enlace de Meta para la empresa de la sesión (GET /instagram/login
+        // con el token) y responde { url }; el navegador va a ese enlace y Meta vuelve a /instagram/callback.
+        document.querySelectorAll('[data-conectar-ig]').forEach((btn) => btn.addEventListener('click', async () => {
+            btn.disabled = true;
+            try {
+                const res = await apiFetch(`${API_RAIZ}/instagram/login`);
+                if (!res.ok) throw new Error(`Error en /instagram/login: ${res.status}`);
+                const { url } = await res.json();
+                if (!url) throw new Error('El servidor no devolvió el enlace de Instagram');
+                window.location.href = url;
+            } catch (err) {
+                console.error('No se pudo iniciar la conexión con Instagram:', err);
+                notificar('alerta', 'No se pudo abrir la conexión con Instagram. Inténtalo de nuevo.');
+                btn.disabled = false;
+            }
+        }));
 
         function formatearValor(v) {
             if (typeof v !== 'number') return escaparHtml(v ?? '—');
